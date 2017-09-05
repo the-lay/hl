@@ -1,1 +1,1 @@
-"# HighLight: Spotlight for Windows" 
+# HighLight: Spotlight for Windows
