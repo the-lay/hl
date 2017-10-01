@@ -11,7 +11,7 @@ from .gui.tray import *
 class Application(QMainWindow):
 
     def __init__(self):
-        super().__init__(flags=Qt.Tool | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint)
+        super().__init__(flags=Qt.Tool | Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint)
 
         # Icon
         self.appIcon = QIcon()
@@ -27,33 +27,59 @@ class Application(QMainWindow):
         # Tray icon
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.trayIcon = AppTrayIcon(self.appIcon)
+
             # Connections
             self.trayIcon.menu.exitRequested.connect(self.close_app)
             self.trayIcon.menu.soundsRequested.connect(self.sounds_manager)
+            self.trayIcon.menu.animationsRequested.connect(self.animation_manager)
             self.trayIcon.visibilityToggleRequested.connect(self.toggle_visibility)
 
         # Global keyboard hot key
-        keyboard.add_hotkey('ctrl+space', self.toggle_visibility)
+        # keyboard.add_hotkey('ctrl+space', self.toggle_visibility)
+
+        # GUI
+        # self.setAttribute(Qt.WA_NoSystemBackground)
+        # self.setAttribute(Qt.WA_TranslucentBackground)
+        # self.setAttribute(Qt.WA_PaintOnScreen)
 
         # Central widget
-        self.appWidget = AppWidget()
-        self.setCentralWidget(self.appWidget)
+        self.searchWidget = Search()
+        self.setCentralWidget(self.searchWidget)
 
-    # Visibility
+        # Center the window
+        self.setGeometry(QStyle.alignedRect(Qt.LeftToRight, Qt.AlignVCenter | Qt.AlignHCenter,
+                                            self.size(), qApp.desktop().availableGeometry()))
+
+    # -- Visibility
+    def hide_app(self):
+        self.hide()
+
+    def show_app(self):
+        self.show()
+        self.raise_()
+        self.activateWindow()
+        self.focusWidget()
+        self.searchWidget.searchField.setFocus()
+
     def toggle_visibility(self):
         if self.isVisible():
-            self.hide()
+            self.hide_app()
         else:
-            self.show()
-            self.raise_()
-            self.setFocus()
+            self.show_app()
 
-    # Sounds
+        print('Visible: ', self.isVisible())
+
+    # -- Sounds
     def sounds_manager(self, enabled: bool):
         # TODO
-        print('adfgadfg', enabled)
+        print('Sounds: ', enabled)
 
-    # Method is called to safely shut down the app
+    # -- Animations
+    def animation_manager(self, enabled: bool):
+        # TODO
+        print('Animations: ', enabled)
+
+    # -- Exit application
     def close_app(self):
         # If there is a tray icon, remove it
         if self.trayIcon:

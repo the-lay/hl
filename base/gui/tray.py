@@ -8,6 +8,7 @@ from ..helpers.settings import *
 class AppTrayMenu(QMenu):
     exitRequested = pyqtSignal()
     soundsRequested = pyqtSignal(bool)
+    animationsRequested = pyqtSignal(bool)
 
     def __init__(self):
         super().__init__()
@@ -18,6 +19,13 @@ class AppTrayMenu(QMenu):
         sound_effects.setChecked(True)
         sound_effects.triggered.connect(self.soundsRequested.emit)
         self.addAction(sound_effects)
+
+        # Animations
+        animations = QAction('Animations', self)
+        animations.setCheckable(True)
+        animations.setChecked(True)
+        animations.triggered.connect(self.animationsRequested.emit)
+        self.addAction(animations)
 
         # Separator
         self.addSeparator()
