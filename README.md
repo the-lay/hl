@@ -1,6 +1,9 @@
 Highlight: Spotlight for windows
 --------------------------------
 
+![](https://github.com/the-lay/hl/blob/master/screen1.png)
+![](https://github.com/the-lay/hl/blob/master/screen2.png)
+
 ### Goals
 In the order of importance and implementation plans.
 
