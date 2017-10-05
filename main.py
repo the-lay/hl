@@ -21,8 +21,8 @@ if __name__ == '__main__':
     # Application tags
     app = QApplication(sys.argv)
     app.setApplicationName('Hightlight')
-    app.setApplicationVersion('0.0.1')
-    app.setOrganizationName('Gubins')
+    app.setApplicationVersion('0.0.2')
+    app.setOrganizationName('the-lay')
 
     # The main app
     win = Application()

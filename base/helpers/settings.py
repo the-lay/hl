@@ -1,9 +1,14 @@
 from pathlib import Path
 from PyQt5.QtCore import QSettings
+from PyQt5.QtGui import QIcon
 
 
 class AppSettings(QSettings):
     _singleton = None
+    WIDTH = 640
+    S_FIELD_HEIGHT = 40
+    RESULTS_HEIGHT = 300
+    ANIMATION_DURATION = 350
 
     @staticmethod
     def instance():
@@ -23,6 +28,10 @@ class AppSettings(QSettings):
         self.setFallbacksEnabled(False)
 
     @staticmethod
-    def get_resource(name: str) -> Path:
-        return AppSettings.instance().resPath / name
-
+    def get_resource(category: str, name: str) -> Path:
+        return AppSettings.instance().resPath / category / name
+    #
+    # @staticmethod
+    # def get_icon(name: str) -> QIcon:
+    #     path = AppSettings.instance().resPath / 'icons' / name
+    #     return QIcon(str(path))

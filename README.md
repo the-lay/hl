@@ -13,9 +13,10 @@ In the order of importance and implementation plans.
 ### Random thoughts for myself
 Personalization: login to google for calendar, gmail  
 Persistance: reminder, history   
-Providers: google (knowledge api?), file search, personalized sources  
+Providers: google (knowledge api?), file search, personalized sources, word definitions   
 Plugins: trigger through text matching, maybe NLP (knowledge apis)?  
-File search: NTFS master record instead of indexing,
+File search: NTFS master record instead of indexing  
+Answer confidence? is it even needed?
 
 ### Inspiration
 [Flashlight](http://flashlight.nateparrott.com/)  
