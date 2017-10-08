@@ -20,14 +20,16 @@ class AppWidget(QWidget):
         # Search field
         self.searchField = SearchField()
 
+        # Results widget
+        # Results widget is being added/hidden depending on text input, hide it initially
+        self.resultsWidget = ResultsWidget()
+        self.resultsWidget.setVisible(False)
+        self.resultsOpen = False  # can't trust QWidget.isVisible with animations
+
         # Register search field and layout
         self.mainLayout.addWidget(self.searchField)
+        self.mainLayout.addWidget(self.resultsWidget)
         self.setLayout(self.mainLayout)
-
-        # Results widget
-        # Results widget is being added/hidden depending on text input
-        self.resultsWidget = ResultsWidget()
-        self.resultsOpen = False  # can't trust QWidget.isVisible when animated
 
         # Connections
         self.searchField.textChanged.connect(self.text_input)
@@ -38,8 +40,7 @@ class AppWidget(QWidget):
         if not field:
 
             # Hide results widget
-            self.resultsWidget.setParent(None)
-            self.repaint()
+            self.resultsWidget.setVisible(False)
 
             # Set minimum height, animate maximum height
             self.parent().setMinimumHeight(AppSettings.S_FIELD_HEIGHT)
@@ -58,10 +59,6 @@ class AppWidget(QWidget):
             self.resultsOpen = False
 
         else:
-
-            # Add results widget
-            self.layout().addWidget(self.resultsWidget)
-
             # Set maximum height, animate minimum
             self.parent().setMaximumHeight(AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT)
 
@@ -74,6 +71,9 @@ class AppWidget(QWidget):
                 a.setEndValue(AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT)
                 a.setEasingCurve(QEasingCurve.OutBack)
                 a.start(QPropertyAnimation.DeleteWhenStopped)
+
+                # Show results widget on animation finish
+                a.finished.connect(lambda: self.resultsWidget.setVisible(True))
 
                 # Need to keep reference, otherwise gets GC'ed immediately
                 self.resultsWidget.animation = a

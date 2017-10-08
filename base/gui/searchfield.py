@@ -34,9 +34,6 @@ class SearchField(QLineEdit):
         # Sizes
         self.setFixedSize(AppSettings.WIDTH, AppSettings.S_FIELD_HEIGHT)
 
-    def sizeHint(self):
-        return QSize(AppSettings.WIDTH, AppSettings.S_FIELD_HEIGHT + 15)
-
     def paintEvent(self, event: QPaintEvent):
         super().paintEvent(event)
 

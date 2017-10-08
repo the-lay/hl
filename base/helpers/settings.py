@@ -8,7 +8,7 @@ class AppSettings(QSettings):
     WIDTH = 640
     S_FIELD_HEIGHT = 40
     RESULTS_HEIGHT = 300
-    ANIMATION_DURATION = 350
+    ANIMATION_DURATION = 50
 
     @staticmethod
     def instance():
