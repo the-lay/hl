@@ -20,6 +20,12 @@ class AppWidget(QWidget):
         # Search field
         self.searchField = SearchField()
 
+        # Search timer, for search delay
+        # https://ux.stackexchange.com/questions/34360/delay-on-keystroke-when-search-as-you-type
+        self.searchTimer = QTimer(self)
+        self.searchTimer.setSingleShot(True)
+        self.searchTimer.timeout.connect(self.do_query)
+
         # Results widget
         # Results widget is being added/hidden depending on text input, hide it initially
         self.resultsWidget = ResultsWidget()
@@ -35,8 +41,10 @@ class AppWidget(QWidget):
         self.searchField.textChanged.connect(self.text_input)
 
     # Triggered upon change in search field
+    # Handles results widget toggling and delaying search query
     def text_input(self, field: str):
 
+        # Results widget opening/closing
         if not field:
 
             # Hide results widget
@@ -58,25 +66,41 @@ class AppWidget(QWidget):
             # Reset flag
             self.resultsOpen = False
 
-        else:
+            # Stop executing further
+            return
+
+        # Ignore if last character is a blank space
+        if field.endswith(' '):
+            return
+
+        # If results widget is not seen, open it
+        if not self.resultsOpen:
+
             # Set maximum height, animate minimum
             self.parent().setMaximumHeight(AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT)
 
-            # Prevent from running multiple times
-            if not self.resultsOpen:
+            a = QPropertyAnimation(self.parent(), b'minimumHeight')
+            a.setDuration(AppSettings.ANIMATION_DURATION)
+            a.setStartValue(AppSettings.S_FIELD_HEIGHT)
+            a.setEndValue(AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT)
+            a.setEasingCurve(QEasingCurve.OutBack)
+            a.start(QPropertyAnimation.DeleteWhenStopped)
 
-                a = QPropertyAnimation(self.parent(), b'minimumHeight')
-                a.setDuration(AppSettings.ANIMATION_DURATION)
-                a.setStartValue(AppSettings.S_FIELD_HEIGHT)
-                a.setEndValue(AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT)
-                a.setEasingCurve(QEasingCurve.OutBack)
-                a.start(QPropertyAnimation.DeleteWhenStopped)
+            # Show results widget on animation finish
+            a.finished.connect(lambda: self.resultsWidget.setVisible(True))
 
-                # Show results widget on animation finish
-                a.finished.connect(lambda: self.resultsWidget.setVisible(True))
+            # Need to keep reference, otherwise gets GC'ed immediately
+            self.resultsWidget.animation = a
 
-                # Need to keep reference, otherwise gets GC'ed immediately
-                self.resultsWidget.animation = a
+            # Set flag
+            self.resultsOpen = True
 
-                # Set flag
-                self.resultsOpen = True
+        # Add a delay on search
+        self.searchTimer.start(AppSettings.SEARCH_DELAY)
+
+    # Assume user stopped typing, start searching
+    def do_query(self):
+        # TODO Intermediate point, might be useful later to filter or do something, but now kind of pointless
+        self.resultsWidget.search(self.searchField.text())
+        print('Searching for ', self.searchField.text())
+

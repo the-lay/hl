@@ -29,3 +29,6 @@ class ResultsWidget(QWidget):
         self.mainLayout.setStretch(1, 6)
 
         self.setLayout(self.mainLayout)
+
+    def search(self, field: str):
+        self.detailsField.setText(field)

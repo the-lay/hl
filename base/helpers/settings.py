@@ -5,10 +5,13 @@ from PyQt5.QtGui import QIcon
 
 class AppSettings(QSettings):
     _singleton = None
+
+    # TODO expose all these in some kind of settings
     WIDTH = 640
     S_FIELD_HEIGHT = 40
     RESULTS_HEIGHT = 300
     ANIMATION_DURATION = 50
+    SEARCH_DELAY = 200
 
     @staticmethod
     def instance():

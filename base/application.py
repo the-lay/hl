@@ -69,7 +69,7 @@ class Application(QMainWindow):
     def hide_app(self):
         self.hide()
 
-        print('Visible: ', self.isVisible())
+        print('Visible:', self.isVisible())
 
     def show_app(self):
         self.show()
@@ -79,7 +79,7 @@ class Application(QMainWindow):
         self.appWidget.searchField.setText(None)
         self.appWidget.searchField.setFocus()
 
-        print('Visible: ', self.isVisible())
+        print('Visible:', self.isVisible())
 
     def toggle_visibility(self):
         if self.isVisible():
@@ -90,12 +90,12 @@ class Application(QMainWindow):
     # -- Sounds
     def sounds_manager(self, enabled: bool):
         # TODO typing sounds? search finished ding? probably bad idea
-        print('Sounds: ', enabled)
+        print('Sounds:', enabled)
 
     # -- Animations
     def animation_manager(self, enabled: bool):
         # TODO settings: turn on/off animations
-        print('Animations: ', enabled)
+        print('Animations:', enabled)
 
     # -- Exit application
     def close_app(self):
