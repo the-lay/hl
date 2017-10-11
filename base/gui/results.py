@@ -18,10 +18,17 @@ class ResultsWidget(QWidget):
         self.setFixedSize(AppSettings.WIDTH, AppSettings.RESULTS_HEIGHT)
 
         # Results fields
-        self.resultsList = QListView()
+        self.resultsList = QListWidget()
         self.resultsList.setContentsMargins(0, 0, 0, 0)
         self.mainLayout.addWidget(self.resultsList)
         self.mainLayout.setStretch(0, 4)
+
+        for i in range(10):
+            item = QListWidgetItem("Item %i" % i)
+            self.resultsList.addItem(item)
+
+        self.resultsList.setResizeMode(QListView.Adjust)
+        self.resultsList.setSpacing(2)
 
         # Details field
         self.detailsField = QLabel('Results go here')

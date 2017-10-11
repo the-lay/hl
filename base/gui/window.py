@@ -102,5 +102,5 @@ class AppWidget(QWidget):
     def do_query(self):
         # TODO Intermediate point, might be useful later to filter or do something, but now kind of pointless
         self.resultsWidget.search(self.searchField.text())
-        print('Searching for ', self.searchField.text())
+        print('Searching for', self.searchField.text())
 

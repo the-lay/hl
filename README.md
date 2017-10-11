@@ -1,8 +1,7 @@
 Highlight: Spotlight for windows
 --------------------------------
 
-![](https://github.com/the-lay/hl/blob/master/screen1.png)
-![](https://github.com/the-lay/hl/blob/master/screen2.png)
+![](https://github.com/the-lay/hl/blob/master/test.gif)
 
 ### Goals
 In the order of importance and implementation plans.
@@ -19,7 +18,9 @@ Persistance: reminder, history
 Providers: google (knowledge api?), file search, personalized sources, word definitions   
 Plugins: trigger through text matching, maybe NLP (knowledge apis)?  
 File search: NTFS master record instead of indexing  
-Answer confidence? is it even needed?
+Answer confidence? is it even needed? Fuzzy search ratio?  
+Add history (query -> which provider gave answer that user used/viewed) / cache?  
+
 
 ### Inspiration
 [Flashlight](http://flashlight.nateparrott.com/)  
