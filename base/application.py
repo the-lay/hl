@@ -13,7 +13,7 @@ class Application(QMainWindow):
     def __init__(self):
         super().__init__(flags=Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint)
 
-        # Icon
+        # Application icon
         self.appIcon = QIcon()
         icon_path = str(AppSettings.get_resource('', 'logo.png'))
         self.appIcon.addFile(icon_path, QSize(16, 16))
@@ -28,23 +28,19 @@ class Application(QMainWindow):
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.trayIcon = AppTrayIcon(self.appIcon)
 
-            # Connections
+            # Menu connections
             self.trayIcon.menu.exitRequested.connect(self.close_app)
             self.trayIcon.menu.soundsRequested.connect(self.sounds_manager)
             self.trayIcon.menu.animationsRequested.connect(self.animation_manager)
+            self.trayIcon.menu.hotkeyRequested.connect(self.hotkey_manager)
+
+            # Tray click
             self.trayIcon.visibilityToggleRequested.connect(self.toggle_visibility)
 
         # Escape shortcut
+        # TODO maybe move it to hotkey manager?
         shortcut = QShortcut(Qt.Key_Escape, self)
         shortcut.activated.connect(self.hide_app)
-
-        # Global hot key
-        # keyboard.add_hotkey('shift+space', self.toggle_visibility)
-
-        # GUI
-        # self.setAttribute(Qt.WA_NoSystemBackground)
-        # self.setAttribute(Qt.WA_TranslucentBackground)
-        # self.setAttribute(Qt.WA_PaintOnScreen)
 
         # Central widget
         self.appWidget = AppWidget()
@@ -61,6 +57,18 @@ class Application(QMainWindow):
                                                   AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT),
                                             qApp.desktop().availableGeometry()))
 
+        # # Add shadow
+        # does not work for our case: requires translucent background
+        # self.setAttribute(Qt.WA_TranslucentBackground)
+        # self.setContentsMargins(5, 5, 5, 5)
+        # self.ef = QGraphicsDropShadowEffect()
+        # self.ef.setBlurRadius(100)
+        # self.ef.setOffset(5)
+        # self.setGraphicsEffect(self.ef)
+
+        # Background color
+        self.setStyleSheet('background-color: rgb(246,246,246);')
+
         # Show app on launch
         # TODO settings: run minimized/open on first launch
         self.show_app()
@@ -72,11 +80,16 @@ class Application(QMainWindow):
         print('Visible:', self.isVisible())
 
     def show_app(self):
+        # Clear any previous query
+        self.appWidget.searchField.setText(None)
+
+        # Show the window
         self.show()
         self.raise_()
+
+        # Focus
         self.activateWindow()
         self.focusWidget()
-        self.appWidget.searchField.setText(None)
         self.appWidget.searchField.setFocus()
 
         print('Visible:', self.isVisible())
@@ -96,6 +109,14 @@ class Application(QMainWindow):
     def animation_manager(self, enabled: bool):
         # TODO settings: turn on/off animations
         print('Animations:', enabled)
+
+    # -- Global hotkey
+    def hotkey_manager(self, enabled: bool):
+        # TODO settings: toggle global hotkey
+        print('Hotkey:', enabled)
+
+        # Global hot key
+        # keyboard.add_hotkey('shift+space', self.toggle_visibility)
 
     # -- Exit application
     def close_app(self):

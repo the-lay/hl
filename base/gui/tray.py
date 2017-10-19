@@ -9,6 +9,7 @@ class AppTrayMenu(QMenu):
     exitRequested = pyqtSignal()
     soundsRequested = pyqtSignal(bool)
     animationsRequested = pyqtSignal(bool)
+    hotkeyRequested = pyqtSignal(bool)
 
     def __init__(self):
         super().__init__()
@@ -27,11 +28,24 @@ class AppTrayMenu(QMenu):
         animations.triggered.connect(self.animationsRequested.emit)
         self.addAction(animations)
 
+        # Global hotkey
+        hotkey = QAction('Global hotkey', self)
+        hotkey.setCheckable(True)
+        hotkey.setChecked(True)
+        hotkey.triggered.connect(self.hotkeyRequested.emit)
+        self.addAction(hotkey)
+
+        # Preferences
+        # TODO
+        preferences = QAction('Preferences', self)
+        preferences.triggered.connect(lambda: print('heyho'))
+        self.addAction(preferences)
+
         # Separator
         self.addSeparator()
 
         # Exit the app
-        exit_app = QAction('Quit the application', self)
+        exit_app = QAction('Quit', self)
         exit_app.triggered.connect(self.exitRequested.emit)
         self.addAction(exit_app)
 

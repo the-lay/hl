@@ -15,14 +15,22 @@ In the order of importance and implementation plans.
 ### Random thoughts for myself
 Personalization: login to google for calendar, gmail  
 Persistance: reminder, history   
-Providers: google (knowledge api?), file search, personalized sources, word definitions   
+Providers: google (knowledge api?), file search, personalized sources, word definitions, start menu (installed programs)   
 Plugins: trigger through text matching, maybe NLP (knowledge apis)?  
 File search: NTFS master record instead of indexing  
 Answer confidence? is it even needed? Fuzzy search ratio?  
-Add history (query -> which provider gave answer that user used/viewed) / cache?  
+Add history (query -> which provider gave answer that user used/viewed) / cache? LRU?  
+Usage statistics  
+
+ 
+### Search flow
+user types ->
+based on query rank providers helpfulness ->
+
 
 
 ### Inspiration
 [Flashlight](http://flashlight.nateparrott.com/)  
 [Alfred](https://www.alfredapp.com/)  
-[Hain](https://github.com/hainproject/hain)
+[Hain](https://github.com/hainproject/hain)  
+[LaunchBar](https://www.obdev.at/products/launchbar/index.html)
