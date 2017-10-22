@@ -13,6 +13,8 @@ class AppSettings(QSettings):
     ANIMATION_DURATION = 250
     SEARCH_DELAY = 200
 
+    BACKGROUND_COLOR = 'rgb(246,246,246)'
+
     @staticmethod
     def instance():
         if not AppSettings._singleton:

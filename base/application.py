@@ -57,17 +57,8 @@ class Application(QMainWindow):
                                                   AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT),
                                             qApp.desktop().availableGeometry()))
 
-        # # Add shadow
-        # does not work for our case: requires translucent background
-        # self.setAttribute(Qt.WA_TranslucentBackground)
-        # self.setContentsMargins(5, 5, 5, 5)
-        # self.ef = QGraphicsDropShadowEffect()
-        # self.ef.setBlurRadius(100)
-        # self.ef.setOffset(5)
-        # self.setGraphicsEffect(self.ef)
-
         # Background color
-        self.setStyleSheet('background-color: rgb(246,246,246);')
+        # self.setStyleSheet('background-color: {};'.format(AppSettings.BACKGROUND_COLOR))
 
         # Show app on launch
         # TODO settings: run minimized/open on first launch
