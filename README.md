@@ -1,7 +1,7 @@
-Highlight: Spotlight for windows
+Highlight: Spotlight for Windows
 --------------------------------
 
-![](https://github.com/the-lay/hl/blob/master/test.gif)
+![](https://github.com/the-lay/hl/blob/master/demo.gif)
 
 ### Goals
 In the order of importance and implementation plans.
