@@ -172,6 +172,14 @@ class AppWidget(QWidget):
         self.resultsWidget.setVisible(False)
         self.resultsOpen = False  # can't trust QWidget.isVisible with animations
 
+        # Visibility timer for results widget and roll-down/up animations
+        # Option A: connect animation finish to visibility, but then there is a perceivable delay
+        # Option B: set visibility from the beginning, but then there are weird sizing issues
+        # Option C : make a tiny timer that will set visibility on after animation started, but before it's finished
+        self.visTimer = QTimer(self)
+        self.visTimer.setSingleShot(True)
+        self.visTimer.timeout.connect(lambda: self.resultsWidget.setVisible(True))
+
         # Register search field and layout
         self.mainLayout.addWidget(self.searchField)
         self.mainLayout.addWidget(self.resultsWidget)
@@ -214,6 +222,7 @@ class AppWidget(QWidget):
         # Set maximum height, animate minimum
         self.parent().setMaximumHeight(AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT)
 
+        # Defining roll down animation
         a = QPropertyAnimation(self.parent(), b'minimumHeight')
         a.setDuration(AppSettings.ANIMATION_DURATION)
         a.setStartValue(AppSettings.S_FIELD_HEIGHT)
@@ -221,8 +230,9 @@ class AppWidget(QWidget):
         a.setEasingCurve(QEasingCurve.OutBack)
         a.start(QPropertyAnimation.DeleteWhenStopped)
 
-        # Show results widget on animation finish
-        a.finished.connect(lambda: self.resultsWidget.setVisible(True))
+        # Visibility timer
+        # Tried different values, but <20 sometimes flickers, >30 sometimes is perceivable
+        self.visTimer.start(20)
 
         # Need to keep reference, otherwise gets GC'ed immediately
         self.resultsWidget.animation = a
@@ -241,6 +251,9 @@ class AppWidget(QWidget):
         a.setEndValue(AppSettings.S_FIELD_HEIGHT)
         a.setEasingCurve(QEasingCurve.OutBack)
         a.start(QPropertyAnimation.DeleteWhenStopped)
+
+        # Stop visibility timer
+        self.visTimer.stop()
 
         # Need to keep reference, otherwise gets GC'ed immediately
         self.resultsWidget.animation = a

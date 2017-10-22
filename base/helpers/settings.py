@@ -10,7 +10,7 @@ class AppSettings(QSettings):
     WIDTH = 640
     S_FIELD_HEIGHT = 40
     RESULTS_HEIGHT = 300
-    ANIMATION_DURATION = 50
+    ANIMATION_DURATION = 250
     SEARCH_DELAY = 200
 
     @staticmethod
