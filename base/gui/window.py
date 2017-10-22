@@ -25,7 +25,7 @@ class SearchField(QLineEdit):
         # Icon
         self.iconSize = int(f_metric.ascent() / 1.1)
         self.icon = QIcon(str(AppSettings.get_resource('icons', 'search.png')))
-        self.setTextMargins(QMargins(self.iconSize + 13, 5, 0, 0))
+        self.setTextMargins(QMargins(self.iconSize + 13, 5, 0, 5))
 
         # Border
         self.setStyleSheet('border: none; /*border-radius: 5px;*/')
@@ -62,14 +62,15 @@ class ResultsWidget(QWidget):
         # Main layout
         self.mainLayout = QVBoxLayout()
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
+        self.mainLayout.setSpacing(0)
         self.mainLayout.setAlignment(Qt.AlignTop)
 
         # Separator
-        self.line = QFrame()
-        self.line.setContentsMargins(0, 0, 0, 0)
-        self.line.setFrameShape(QFrame.HLine)
-        self.line.setFrameShadow(QFrame.Sunken)
-        self.mainLayout.addWidget(self.line)
+        self.hline = QFrame()
+        self.hline.setContentsMargins(0, 0, 0, 0)
+        self.hline.setFrameShape(QFrame.HLine)
+        self.hline.setFrameShadow(QFrame.Plain)
+        self.mainLayout.addWidget(self.hline)
 
         # Bottom layout
         self.bottomLayout = QHBoxLayout()
@@ -80,10 +81,9 @@ class ResultsWidget(QWidget):
         self.resultsList.setContentsMargins(0, 0, 0, 0)
         self.resultsList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.resultsList.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.resultsList.setStyleSheet('QListWidget { border: none; background-color: rgb(255,0,255);}')
+        self.resultsList.setStyleSheet('QListWidget { border: none; background-color: rgb(255,255,255);}')
 
-        self.bottomLayout.addWidget(self.resultsList)
-        self.bottomLayout.setStretch(0, 4)  # 40%
+        self.bottomLayout.addWidget(self.resultsList, 4)
 
         # TODO Testing stuff, remove after results list appearance is finalized
         for i in range(20):
@@ -96,10 +96,16 @@ class ResultsWidget(QWidget):
         self.resultsList.setResizeMode(QListView.Adjust)
         self.resultsList.setSpacing(2)
 
+        # Separator
+        self.vline = QFrame()
+        self.vline.setContentsMargins(0, 0, 0, 0)
+        self.vline.setFrameShape(QFrame.VLine)
+        self.vline.setFrameShadow(QFrame.Plain)
+        self.bottomLayout.addWidget(self.vline, 0)
+
         # Details field
         self.detailsField = QLabel('Results go here')
-        self.bottomLayout.addWidget(self.detailsField)
-        self.bottomLayout.setStretch(1, 6)  # 60%
+        self.bottomLayout.addWidget(self.detailsField, 6)
 
         self.mainLayout.addLayout(self.bottomLayout)
         self.setLayout(self.mainLayout)
@@ -152,9 +158,11 @@ class AppWidget(QWidget):
         super().__init__()
 
         self.mainLayout = QVBoxLayout()
+        self.mainLayout.setSpacing(0)
+        self.setContentsMargins(0, 0, 0, 0)
 
         # Frame
-        self.mainLayout.setContentsMargins(QMargins(0, 0, 0, 0))
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.mainLayout.setAlignment(Qt.AlignTop)
 
         # Search field
