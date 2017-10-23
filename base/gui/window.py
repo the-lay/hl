@@ -23,16 +23,13 @@ class SearchField(QLineEdit):
         f_metric = QFontMetrics(f)
 
         # Icon
-        self.iconSize = int(f_metric.ascent() / 1.1)
+        # TODO when query is processed change icon to something informative?
+        self.iconSize = int(f_metric.ascent() * 1.3)
         self.icon = QIcon(str(AppSettings.get_resource('icons', 'search.png')))
         self.setTextMargins(QMargins(self.iconSize + 13, 5, 0, 5))
 
         # Border
-        self.setStyleSheet('border: none; /*border-radius: 5px;*/')
-        # TODO borders visible only with translucent background, do I need em?
-
-        # Sizes
-        # self.setFixedSize(AppSettings.WIDTH, AppSettings.S_FIELD_HEIGHT)
+        self.setStyleSheet('border: none; background-color: {}'.format(AppSettings.BACKGROUND_COLOR))
 
     # Overloading to draw an icon
     def paintEvent(self, event: QPaintEvent):
@@ -67,9 +64,11 @@ class ResultsWidget(QWidget):
 
         # Separator
         self.hline = QFrame()
-        self.hline.setContentsMargins(0, 0, 0, 0)
         self.hline.setFrameShape(QFrame.HLine)
         self.hline.setFrameShadow(QFrame.Plain)
+        self.hline.setMidLineWidth(0)
+        self.hline.setLineWidth(0)
+        self.hline.setStyleSheet('border: none; background: {};'.format(AppSettings.SEPARATOR_COLOR))
         self.mainLayout.addWidget(self.hline)
 
         # Bottom layout
@@ -81,7 +80,7 @@ class ResultsWidget(QWidget):
         self.resultsList.setContentsMargins(0, 0, 0, 0)
         self.resultsList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.resultsList.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.resultsList.setStyleSheet('QListWidget { border: none; background-color: rgb(255,255,255);}')
+        self.resultsList.setStyleSheet('border: none; background: {};'.format(AppSettings.BACKGROUND_COLOR))
 
         self.bottomLayout.addWidget(self.resultsList, 4)
 
@@ -98,9 +97,11 @@ class ResultsWidget(QWidget):
 
         # Separator
         self.vline = QFrame()
-        self.vline.setContentsMargins(0, 0, 0, 0)
         self.vline.setFrameShape(QFrame.VLine)
         self.vline.setFrameShadow(QFrame.Plain)
+        self.vline.setMidLineWidth(0)
+        self.vline.setLineWidth(0)
+        self.vline.setStyleSheet('border: none; background:{}'.format(AppSettings.SEPARATOR_COLOR))
         self.bottomLayout.addWidget(self.vline, 0)
 
         # Details field
@@ -130,6 +131,7 @@ class FoundItem(QWidget):
         # item layout
         self.mainLayout = QHBoxLayout()
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
+        self.setStyleSheet('background-color: rgb(255,0,255);')
 
         # TODO elided version of title
         # https://stackoverflow.com/questions/7381100/text-overflow-for-a-qlabel-s-text-rendering-in-qt
