@@ -6,6 +6,8 @@ from ..helpers.settings import *
 
 
 class SearchField(QLineEdit):
+    selectUp = pyqtSignal()
+    selectDown = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -43,11 +45,10 @@ class SearchField(QLineEdit):
 
     # Handling down/up button TODO: maybe modify tab too?
     def keyPressEvent(self, event: QKeyEvent):
-        # TODO: proper button handling
         if event.key() == Qt.Key_Down:
-            print('going down in results list')
+            self.selectDown.emit()
         elif event.key() == Qt.Key_Up:
-            print('going up in results list')
+            self.selectUp.emit()
         else:
             super().keyPressEvent(event)
 
@@ -110,6 +111,8 @@ class ResultsWidget(QWidget):
         self.setLayout(self.mainLayout)
 
     def search(self, field: str):
+
+        # fuzz search for keywords
 
         words = field.split()
         for i in range(len(words)):
@@ -212,6 +215,8 @@ class AppWidget(QWidget):
 
         # Connections
         self.searchField.textChanged.connect(self.text_input)
+        self.searchField.selectUp.connect(lambda: self.change_selection(True))
+        self.searchField.selectDown.connect(lambda: self.change_selection(False))
 
     # Triggered upon change in search field
     # Handles results widget toggling and delaying search query
@@ -243,6 +248,25 @@ class AppWidget(QWidget):
 
         # Add a delay on search
         self.searchTimer.start(AppSettings.SEARCH_DELAY)
+
+    # Triggered upon down/up key press on search bar
+    def change_selection(self, up: bool):
+        current_row = self.resultsWidget.resultsList.currentRow()
+
+        # update the row
+        if up:
+            current_row -= 1
+        else:
+            current_row += 1
+
+        # limit the selection
+        if current_row < 0:
+            current_row = 0
+        elif current_row > self.resultsWidget.resultsList.count() - 1:
+            current_row = self.resultsWidget.resultsList.count() - 1
+
+        # set it
+        self.resultsWidget.resultsList.setCurrentRow(current_row)
 
     # Roll window down
     def roll_down(self):
