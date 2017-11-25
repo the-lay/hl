@@ -134,7 +134,7 @@ class FoundItem(QWidget):
 
         # item layout
         self.mainLayout = QVBoxLayout()
-        self.mainLayout.setContentsMargins(8, 0, 0, 0)  # same left-margin as search lens in the main bar
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)  # same left-margin as search lens in the main bar
         self.mainLayout.setSpacing(0)
         self.setStyleSheet('background: {};'.format(AppSettings.BACKGROUND_COLOR))
 
@@ -145,6 +145,7 @@ class FoundItem(QWidget):
         # https://stackoverflow.com/questions/7381100/text-overflow-for-a-qlabel-s-text-rendering-in-qt
         self.titleLabel = QLabel(title)
         self.iconLabel = QLabel()
+        self.iconLabel.setContentsMargins(8, 0, 0, 0)
         self.iconLabel.setPixmap(QPixmap(str(AppSettings.get_resource('', 'logo.png'))).scaledToHeight(30))
         # TODO expose height of result items to settings
 
