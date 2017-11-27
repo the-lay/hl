@@ -129,7 +129,7 @@ class FoundItem(QWidget):
     # confidence allows sorting
     # provider allows to traceback
 
-    def __init__(self, title: str, confidence: int=0, provider: int=0, parent=None):
+    def __init__(self, title: str, icon: str='logo', confidence: int=0, provider: int=0, parent=None):
         super(FoundItem, self).__init__(parent)
 
         # item layout
@@ -143,14 +143,23 @@ class FoundItem(QWidget):
 
         # TODO elided version of title
         # https://stackoverflow.com/questions/7381100/text-overflow-for-a-qlabel-s-text-rendering-in-qt
-        self.titleLabel = QLabel(title)
+
         self.iconLabel = QLabel()
         self.iconLabel.setContentsMargins(8, 0, 0, 0)
-        self.iconLabel.setPixmap(QPixmap(str(AppSettings.get_resource('', 'logo.png'))).scaledToHeight(30))
+        self.iconLabel.setPixmap(QPixmap(str(AppSettings.get_resource('', icon + '.png'))).scaledToHeight(30))
         # TODO expose height of result items to settings
 
+        self.detailsLayout = QVBoxLayout()
+        self.detailsLayout.setContentsMargins(0, 0, 0, 0)
+        self.detailsLayout.setSpacing(0)
+
+        self.titleLabel = QLabel(title)
+        self.detailsLayout.addWidget(self.titleLabel)
+        self.confidenceLabel = QLabel(str(confidence))
+        self.detailsLayout.addWidget(self.confidenceLabel)
+
         self.bottomLayout.addWidget(self.iconLabel, 0)
-        self.bottomLayout.addWidget(self.titleLabel, 1)
+        self.bottomLayout.addLayout(self.detailsLayout, 1)
         self.mainLayout.addLayout(self.bottomLayout)
 
         # divider
