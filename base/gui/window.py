@@ -6,6 +6,8 @@ from ..helpers.settings import *
 
 
 class SearchField(QLineEdit):
+    selectUp = pyqtSignal()
+    selectDown = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -23,16 +25,13 @@ class SearchField(QLineEdit):
         f_metric = QFontMetrics(f)
 
         # Icon
-        self.iconSize = int(f_metric.ascent() / 1.1)
+        # TODO when query is processed change icon to something informative?
+        self.iconSize = int(f_metric.ascent() * 1.3)
         self.icon = QIcon(str(AppSettings.get_resource('icons', 'search.png')))
         self.setTextMargins(QMargins(self.iconSize + 13, 5, 0, 5))
 
         # Border
-        self.setStyleSheet('border: none; /*border-radius: 5px;*/')
-        # TODO borders visible only with translucent background, do I need em?
-
-        # Sizes
-        # self.setFixedSize(AppSettings.WIDTH, AppSettings.S_FIELD_HEIGHT)
+        self.setStyleSheet('border: none; background-color: {}'.format(AppSettings.BACKGROUND_COLOR))
 
     # Overloading to draw an icon
     def paintEvent(self, event: QPaintEvent):
@@ -42,15 +41,14 @@ class SearchField(QLineEdit):
         # Search icon in the field
         painter = QPainter(self)
         icon_pixmap = self.icon.pixmap(QSize(self.iconSize, self.iconSize))
-        painter.drawPixmap(8, (self.height() - self.iconSize + 5) // 2, icon_pixmap)
+        painter.drawPixmap(8, (self.height() - self.iconSize + 3) // 2, icon_pixmap)
 
     # Handling down/up button TODO: maybe modify tab too?
     def keyPressEvent(self, event: QKeyEvent):
-        # TODO: proper button handling
         if event.key() == Qt.Key_Down:
-            print('going down in results list')
+            self.selectDown.emit()
         elif event.key() == Qt.Key_Up:
-            print('going up in results list')
+            self.selectUp.emit()
         else:
             super().keyPressEvent(event)
 
@@ -64,12 +62,15 @@ class ResultsWidget(QWidget):
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.mainLayout.setSpacing(0)
         self.mainLayout.setAlignment(Qt.AlignTop)
+        self.setStyleSheet('border: none; background: {};'.format(AppSettings.BACKGROUND_COLOR))
 
         # Separator
         self.hline = QFrame()
-        self.hline.setContentsMargins(0, 0, 0, 0)
         self.hline.setFrameShape(QFrame.HLine)
         self.hline.setFrameShadow(QFrame.Plain)
+        self.hline.setMidLineWidth(0)
+        self.hline.setLineWidth(0)
+        self.hline.setStyleSheet('border: none; background: {};'.format(AppSettings.SEPARATOR_COLOR))
         self.mainLayout.addWidget(self.hline)
 
         # Bottom layout
@@ -81,73 +82,102 @@ class ResultsWidget(QWidget):
         self.resultsList.setContentsMargins(0, 0, 0, 0)
         self.resultsList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.resultsList.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.resultsList.setStyleSheet('QListWidget { border: none; background-color: rgb(255,255,255);}')
+        self.resultsList.setStyleSheet('QListWidget {{ border: none; background: {}; }}'
+                                       .format(AppSettings.BACKGROUND_COLOR))
+        self.resultsList.setUniformItemSizes(True)
+        # self.resultsList.setStyleSheet('QListWidget::item { border-bottom: 1px solid black; }')
+        self.resultsList.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.MinimumExpanding)
 
-        self.bottomLayout.addWidget(self.resultsList, 4)
-
-        # TODO Testing stuff, remove after results list appearance is finalized
-        for i in range(20):
-            item = QListWidgetItem(self.resultsList)
-            my_item = FoundItem('Item Item Item %i' % i)
-            item.setSizeHint(my_item.sizeHint())
-            self.resultsList.addItem(item)
-            self.resultsList.setItemWidget(item, my_item)
+        self.bottomLayout.addWidget(self.resultsList, 4)  # TODO expose results list to details ratio
 
         self.resultsList.setResizeMode(QListView.Adjust)
-        self.resultsList.setSpacing(2)
+        self.resultsList.setSpacing(0)
 
         # Separator
         self.vline = QFrame()
-        self.vline.setContentsMargins(0, 0, 0, 0)
         self.vline.setFrameShape(QFrame.VLine)
         self.vline.setFrameShadow(QFrame.Plain)
+        self.vline.setMidLineWidth(0)
+        self.vline.setLineWidth(0)
+        self.vline.setStyleSheet('border: none; background:{}'.format(AppSettings.SEPARATOR_COLOR))
         self.bottomLayout.addWidget(self.vline, 0)
 
         # Details field
-        self.detailsField = QLabel('Results go here')
-        self.bottomLayout.addWidget(self.detailsField, 6)
+        self.resultDetails = QLabel()
+        self.resultDetails.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.MinimumExpanding)
+        self.bottomLayout.addWidget(self.resultDetails, 6)  # TODO expose results list to details ratio
 
         self.mainLayout.addLayout(self.bottomLayout)
         self.setLayout(self.mainLayout)
 
     def search(self, field: str):
-        # self.resultsList.clear()
-        # for i in range(len(field)):
-        #     self.resultsList.addItem(QListWidgetItem('Item %i' % i))
 
-        self.detailsField.setText(field)
+        # fuzz search for keywords
 
-    # def focus
+        words = field.split()
+        for i in range(len(words)):
+            item = QListWidgetItem(self.resultsList)
+            my_item = FoundItem('{}'.format(words[i]))
+            item.setSizeHint(my_item.sizeHint())
+            self.resultsList.addItem(item)
+            self.resultsList.setItemWidget(item, my_item)
+
+        self.resultDetails.setText(field)
 
 
 class FoundItem(QWidget):
     # confidence allows sorting
     # provider allows to traceback
 
-    def __init__(self, title: str, confidence: int=0, provider: int=0, parent=None):
+    def __init__(self, title: str, icon: str='logo', confidence: int=0, provider: int=0, parent=None):
         super(FoundItem, self).__init__(parent)
 
         # item layout
-        self.mainLayout = QHBoxLayout()
-        self.mainLayout.setContentsMargins(0, 0, 0, 0)
+        self.mainLayout = QVBoxLayout()
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)  # same left-margin as search lens in the main bar
+        self.mainLayout.setSpacing(0)
+        self.setStyleSheet('background: {};'.format(AppSettings.BACKGROUND_COLOR))
+
+        self.bottomLayout = QHBoxLayout()
+        self.bottomLayout.setSpacing(7)
 
         # TODO elided version of title
         # https://stackoverflow.com/questions/7381100/text-overflow-for-a-qlabel-s-text-rendering-in-qt
-        self.titleLabel = QLabel(title)
+
         self.iconLabel = QLabel()
-        self.iconLabel.setPixmap(QPixmap(str(AppSettings.get_resource('', 'logo.png'))).scaledToHeight(30))
+        self.iconLabel.setContentsMargins(8, 0, 0, 0)
+        self.iconLabel.setPixmap(QPixmap(str(AppSettings.get_resource('', icon + '.png'))).scaledToHeight(30))
         # TODO expose height of result items to settings
 
-        self.mainLayout.addWidget(self.iconLabel, 0)
-        self.mainLayout.addWidget(self.titleLabel, 1)
+        self.detailsLayout = QVBoxLayout()
+        self.detailsLayout.setContentsMargins(0, 0, 0, 0)
+        self.detailsLayout.setSpacing(0)
+
+        self.titleLabel = QLabel(title)
+        self.detailsLayout.addWidget(self.titleLabel)
+        self.confidenceLabel = QLabel(str(confidence))
+        self.detailsLayout.addWidget(self.confidenceLabel)
+
+        self.bottomLayout.addWidget(self.iconLabel, 0)
+        self.bottomLayout.addLayout(self.detailsLayout, 1)
+        self.mainLayout.addLayout(self.bottomLayout)
+
+        # divider
+        self.hline = QFrame()
+        self.hline.setFrameShape(QFrame.HLine)
+        self.hline.setFrameShadow(QFrame.Plain)
+        self.hline.setMidLineWidth(0)
+        self.hline.setLineWidth(0)
+        self.hline.setStyleSheet('border: none; background: {};'.format(AppSettings.SEPARATOR_COLOR))
+        self.mainLayout.addWidget(self.hline)
 
         self.setLayout(self.mainLayout)
 
 
-class ItemSeparator(QWidget):
+class FoundItemCategories(QWidget):
 
     def __init__(self, title: str, parent=None):
-        super(ItemSeparator, self).__init__(parent)
+        super(FoundItemCategories, self).__init__(parent)
 
         self.title = title
 
@@ -195,6 +225,8 @@ class AppWidget(QWidget):
 
         # Connections
         self.searchField.textChanged.connect(self.text_input)
+        self.searchField.selectUp.connect(lambda: self.change_selection(True))
+        self.searchField.selectDown.connect(lambda: self.change_selection(False))
 
     # Triggered upon change in search field
     # Handles results widget toggling and delaying search query
@@ -211,8 +243,10 @@ class AppWidget(QWidget):
             return
 
         # Ignore if last character is a blank space
-        elif field.endswith(' '):
-            return
+        # TODO: good idea, but needs more thought
+        # for example: ctrl+backspace remove the last word, but leaves the space
+        # elif field.endswith(' '):
+        #     return
 
         # If results widget is not seen, open it
         if not self.resultsOpen:
@@ -224,6 +258,25 @@ class AppWidget(QWidget):
 
         # Add a delay on search
         self.searchTimer.start(AppSettings.SEARCH_DELAY)
+
+    # Triggered upon down/up key press on search bar
+    def change_selection(self, up: bool):
+        current_row = self.resultsWidget.resultsList.currentRow()
+
+        # update the row
+        if up:
+            current_row -= 1
+        else:
+            current_row += 1
+
+        # limit the selection
+        if current_row < 0:
+            current_row = 0
+        elif current_row > self.resultsWidget.resultsList.count() - 1:
+            current_row = self.resultsWidget.resultsList.count() - 1
+
+        # set it
+        self.resultsWidget.resultsList.setCurrentRow(current_row)
 
     # Roll window down
     def roll_down(self):
@@ -240,7 +293,7 @@ class AppWidget(QWidget):
 
         # Visibility timer
         # Tried different values, but <20 sometimes flickers, >30 sometimes is perceivable
-        self.visTimer.start(20)
+        self.visTimer.start(25)
 
         # Need to keep reference, otherwise gets GC'ed immediately
         self.resultsWidget.animation = a
@@ -266,8 +319,13 @@ class AppWidget(QWidget):
         # Need to keep reference, otherwise gets GC'ed immediately
         self.resultsWidget.animation = a
 
-        # Remove border
-        # self.searchField.setStyleSheet('border: none;')
+        # Clear results
+        self.clear_results()
+
+    # Clear results list and result details
+    def clear_results(self):
+        self.resultsWidget.resultsList.clear()
+        self.resultsWidget.resultDetails.clear()
 
     # Assume user stopped typing, start searching
     def do_query(self):
@@ -276,7 +334,10 @@ class AppWidget(QWidget):
         if not query:
             return
 
-        # Send data
+        # Clear previous results
+        self.clear_results()
+
+        # Pass input field to
         self.resultsWidget.search(self.searchField.text())
         print('Searching for', self.searchField.text())
 

@@ -14,6 +14,7 @@ class AppSettings(QSettings):
     SEARCH_DELAY = 200
 
     BACKGROUND_COLOR = 'rgb(246,246,246)'
+    SEPARATOR_COLOR = 'rgb(223,223,223)'
 
     @staticmethod
     def instance():
