@@ -1,6 +1,7 @@
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
+import random
 
 from ..helpers.settings import *
 
@@ -9,12 +10,49 @@ class SearchField(QLineEdit):
     selectUp = pyqtSignal()
     selectDown = pyqtSignal()
 
+    def typewriter_animation(self):
+
+        # user is typing something, turn off animation
+        if len(str(self.text())) > 0:
+            self.placeholderTimer.stop()
+            return
+
+        # otherwise start placeholder animation
+        self.placeholderTimer.start(0)
+
+    def placeholder_callback(self):
+        # choose random greeting
+        new_greeting = random.choice(self.greetings)
+        # reroll if it's the same as previous
+        while new_greeting == self.currentGreeting:
+            new_greeting = random.choice(self.greetings)
+        self.currentGreeting = new_greeting
+
+        # set the new placeholder and start timer for next change
+        self.setPlaceholderText(new_greeting)
+        self.placeholderTimer.start(AppSettings.PLACEHOLDER_CHANGE_TIME)
+
     def __init__(self):
         super().__init__()
 
-        # Placeholder
-        self.setPlaceholderText('Search')
-        # TODO placeholder with typewriter animation of some fun stuff
+        # Placeholder greetings
+        # TODO populate greetings from providers manager
+        self.greetings = [
+            "wiki 'query'",
+            "youtube 'query'",
+            "calendar 'query'",
+            "imdb 'query'",
+            "lyrics 'query'",
+            "any file on your PC"
+        ]
+        self.currentGreeting = ''
+
+        # Placeholder timer
+        self.placeholderTimer = QTimer(self)
+        self.placeholderTimer.setSingleShot(False)
+        self.placeholderTimer.timeout.connect(self.placeholder_callback)
+        self.textChanged.connect(self.typewriter_animation)
+        self.textChanged.emit('')
 
         # Font
         self.fontSize = 14
@@ -29,6 +67,9 @@ class SearchField(QLineEdit):
         self.iconSize = int(f_metric.ascent() * 1.3)
         self.icon = QIcon(str(AppSettings.get_resource('icons', 'search.png')))
         self.setTextMargins(QMargins(self.iconSize + 13, 5, 0, 5))
+
+        # Remove the context menu
+        self.setContextMenuPolicy(Qt.NoContextMenu)
 
         # Border
         self.setStyleSheet('border: none; background-color: {}'.format(AppSettings.BACKGROUND_COLOR))
@@ -112,7 +153,9 @@ class ResultsWidget(QWidget):
 
     def search(self, field: str):
 
-        # fuzz search for keywords
+
+        # pass field to provider manager
+        # manager does fuzz search for providers
 
         words = field.split()
         for i in range(len(words)):
