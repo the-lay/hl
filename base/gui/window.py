@@ -2,6 +2,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 import random
+from typing import List
 
 from ..helpers.settings import *
 
@@ -9,8 +10,9 @@ from ..helpers.settings import *
 class SearchField(QLineEdit):
     selectUp = pyqtSignal()
     selectDown = pyqtSignal()
+    selectTab = pyqtSignal()
 
-    def placeholder_animation(self):
+    def placeholder_animation(self) -> None:
 
         # user is typing something, turn off animation
         if len(str(self.text())) > 0:
@@ -20,7 +22,7 @@ class SearchField(QLineEdit):
         # otherwise start placeholder animation
         self.placeholderTimer.start(0)
 
-    def placeholder_callback(self):
+    def placeholder_callback(self) -> None:
         # choose random greeting
         new_greeting = random.choice(self.greetings)
         # reroll if it's the same as previous
@@ -52,7 +54,7 @@ class SearchField(QLineEdit):
         self.placeholderTimer = QTimer(self)
         self.placeholderTimer.timeout.connect(self.placeholder_callback)
         self.textChanged.connect(self.placeholder_animation)
-        self.textChanged.emit('')  # to trigger self.placeholder_animation()
+        self.placeholder_animation()
 
         # Font
         self.fontSize = 14
@@ -63,7 +65,8 @@ class SearchField(QLineEdit):
         f_metric = QFontMetrics(f)
 
         # Icon
-        # TODO when query is processed change icon to something informative?
+        # TODO when query is processed change icon to something informative? like a green tick
+        # TODO and while searching an animated icon?
         self.iconSize = int(f_metric.ascent() * 1.3)
         self.icon = QIcon(str(AppSettings.get_resource('icons', 'search.png')))
         self.setTextMargins(QMargins(self.iconSize + 13, 5, 0, 5))
@@ -74,8 +77,11 @@ class SearchField(QLineEdit):
         # Border
         self.setStyleSheet('QLineEdit {{ border: none; background-color: {0}; }}'.format(AppSettings.BACKGROUND_COLOR))
 
+        # Intercept all keyboard events
+        self.grabKeyboard()
+
     # Overloading to draw an icon
-    def paintEvent(self, event: QPaintEvent):
+    def paintEvent(self, event: QPaintEvent) -> None:
         super().paintEvent(event)
 
         # TODO: expose in settings whether to draw icon or not
@@ -84,12 +90,14 @@ class SearchField(QLineEdit):
         icon_pixmap = self.icon.pixmap(QSize(self.iconSize, self.iconSize))
         painter.drawPixmap(8, (self.height() - self.iconSize + 3) // 2, icon_pixmap)
 
-    # Handling down/up button TODO: maybe modify tab too?
-    def keyPressEvent(self, event: QKeyEvent):
+    # Handling down/up button
+    def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key_Down:
             self.selectDown.emit()
         elif event.key() == Qt.Key_Up:
             self.selectUp.emit()
+        elif event.key() == Qt.Key_Tab:
+            self.selectTab.emit()
         else:
             super().keyPressEvent(event)
 
@@ -120,6 +128,7 @@ class ResultsWidget(QWidget):
 
         # Results fields
         self.resultsList = QListWidget()
+        self.resultsList.setFocusPolicy(Qt.NoFocus)
         self.resultsList.setContentsMargins(0, 0, 0, 0)
         self.resultsList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.resultsList.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -151,25 +160,27 @@ class ResultsWidget(QWidget):
         self.mainLayout.addLayout(self.bottomLayout)
         self.setLayout(self.mainLayout)
 
-    def search(self, field: str):
+        self.setFocusPolicy(Qt.NoFocus)
 
+        # Provider manager results connections
+        AppSettings.get_provider_manager().resultsFound.connect(self.receive_results)
 
+    def receive_results(self, results: List) -> None:
 
-        # pass field to provider manager
-        # manager does fuzz search for providers
-
-        # color recognized keywords
-        # https://stackoverflow.com/questions/14417333/how-can-i-change-color-of-part-of-the-text-in-qlineedit
-
-        words = field.split()
-        for i in range(len(words)):
+        for i in range(len(results)):
             item = QListWidgetItem(self.resultsList)
-            my_item = FoundItem('{}'.format(words[i]))
+            my_item = FoundItem('{}'.format(results[i]), confidence=(int(i) * 10))
             item.setSizeHint(my_item.sizeHint())
             self.resultsList.addItem(item)
             self.resultsList.setItemWidget(item, my_item)
 
-        self.resultDetails.setText(field)
+        # TODO sort items by confidence
+
+        # Select the first row
+        self.resultsList.setCurrentRow(0)
+
+        # placeholder, TODO remove when resultDetails widget implemented
+        self.resultDetails.setText(', '.join(results))
 
 
 class FoundItem(QWidget):
@@ -221,14 +232,6 @@ class FoundItem(QWidget):
         self.setLayout(self.mainLayout)
 
 
-class FoundItemCategories(QWidget):
-
-    def __init__(self, title: str, parent=None):
-        super(FoundItemCategories, self).__init__(parent)
-
-        self.title = title
-
-
 class AppWidget(QWidget):
 
     def __init__(self):
@@ -272,12 +275,13 @@ class AppWidget(QWidget):
 
         # Connections
         self.searchField.textChanged.connect(self.text_input)
-        self.searchField.selectUp.connect(lambda: self.change_selection(True))
-        self.searchField.selectDown.connect(lambda: self.change_selection(False))
+        self.searchField.selectUp.connect(lambda: self.select_up())
+        self.searchField.selectDown.connect(lambda: self.select_down())
+        self.searchField.selectTab.connect(lambda: self.select_tab())
 
     # Triggered upon change in search field
     # Handles results widget toggling and delaying search query
-    def text_input(self, field: str):
+    def text_input(self, field: str) -> None:
 
         # Results widget opening/closing
         if not field:
@@ -288,6 +292,7 @@ class AppWidget(QWidget):
 
             # Stop executing further
             return
+
         # Ignore if last character is a blank space
         # TODO: good idea, but needs more thought
         # for example: ctrl+backspace remove the last word, but leaves the space
@@ -297,27 +302,39 @@ class AppWidget(QWidget):
         # Add a delay on search
         self.searchTimer.start(AppSettings.SEARCH_DELAY)
 
-    # Triggered upon down/up key press on search bar
-    def change_selection(self, up: bool):
-        current_row = self.resultsWidget.resultsList.currentRow()
+    # TODO behavior of up/down/tab should be defined through settings
+    def select_down(self) -> None:
+        # TODO what way up/down goes
+        current_row = self.resultsWidget.resultsList.currentRow() + 1
 
-        # update the row
-        if up:
-            current_row -= 1
-        else:
-            current_row += 1
+        # TODO does it scroll through or stops on the top/bottom row
+        max_row = self.resultsWidget.resultsList.count() - 1
+        if current_row > max_row:
+            current_row = max_row
 
-        # limit the selection
+        self.resultsWidget.resultsList.setCurrentRow(current_row)
+
+    # TODO same as select_down
+    def select_up(self) -> None:
+        current_row = self.resultsWidget.resultsList.currentRow() - 1
+
         if current_row < 0:
             current_row = 0
-        elif current_row > self.resultsWidget.resultsList.count() - 1:
-            current_row = self.resultsWidget.resultsList.count() - 1
 
-        # set it
+        self.resultsWidget.resultsList.setCurrentRow(current_row)
+
+    # TODO same as select_down
+    def select_tab(self) -> None:
+        current_row = self.resultsWidget.resultsList.currentRow() + 1
+
+        max_row = self.resultsWidget.resultsList.count() - 1
+        if current_row > max_row:
+            current_row = 0
+
         self.resultsWidget.resultsList.setCurrentRow(current_row)
 
     # Roll window down
-    def roll_down(self):
+    def roll_down(self) -> None:
         # Set maximum height, animate minimum
         self.parent().setMaximumHeight(AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT)
 
@@ -337,7 +354,7 @@ class AppWidget(QWidget):
         self.resultsWidget.animation = a
 
     # Roll window up
-    def roll_up(self):
+    def roll_up(self) -> None:
         # Hide results widget
         self.resultsWidget.setVisible(False)
 
@@ -361,13 +378,13 @@ class AppWidget(QWidget):
         self.clear_results()
 
     # Clear results list and result details
-    def clear_results(self):
+    def clear_results(self) -> None:
         self.resultsWidget.resultsList.clear()
         self.resultsWidget.resultDetails.clear()
 
     # Assume user stopped typing, start searching
     # If the widget is not open, roll down the window
-    def do_query(self):
+    def do_query(self) -> None:
         # TODO more input validation
         query = self.searchField.text()
         if not query:
@@ -384,7 +401,12 @@ class AppWidget(QWidget):
         # Clear previous results
         self.clear_results()
 
-        # Pass input field to
-        self.resultsWidget.search(self.searchField.text())
-        print('Searching for', self.searchField.text())
+        # Pass input field to provider manager
+        # manager does fuzz search for providers
+
+        # TODO color recognized keywords?
+        # https://stackoverflow.com/questions/14417333/how-can-i-change-color-of-part-of-the-text-in-qlineedit
+
+        AppSettings.get_provider_manager().search(query)
+        print('Searching for', query)
 
