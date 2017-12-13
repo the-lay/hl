@@ -10,7 +10,7 @@ class SearchField(QLineEdit):
     selectUp = pyqtSignal()
     selectDown = pyqtSignal()
 
-    def typewriter_animation(self):
+    def placeholder_animation(self):
 
         # user is typing something, turn off animation
         if len(str(self.text())) > 0:
@@ -43,16 +43,16 @@ class SearchField(QLineEdit):
             "calendar 'query'",
             "imdb 'query'",
             "lyrics 'query'",
-            "any file on your PC"
+            "any file on your PC",
+            "help"
         ]
         self.currentGreeting = ''
 
         # Placeholder timer
         self.placeholderTimer = QTimer(self)
-        self.placeholderTimer.setSingleShot(False)
         self.placeholderTimer.timeout.connect(self.placeholder_callback)
-        self.textChanged.connect(self.typewriter_animation)
-        self.textChanged.emit('')
+        self.textChanged.connect(self.placeholder_animation)
+        self.textChanged.emit('')  # to trigger self.placeholder_animation()
 
         # Font
         self.fontSize = 14
@@ -72,7 +72,7 @@ class SearchField(QLineEdit):
         self.setContextMenuPolicy(Qt.NoContextMenu)
 
         # Border
-        self.setStyleSheet('border: none; background-color: {}'.format(AppSettings.BACKGROUND_COLOR))
+        self.setStyleSheet('QLineEdit {{ border: none; background-color: {0}; }}'.format(AppSettings.BACKGROUND_COLOR))
 
     # Overloading to draw an icon
     def paintEvent(self, event: QPaintEvent):
@@ -103,7 +103,7 @@ class ResultsWidget(QWidget):
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.mainLayout.setSpacing(0)
         self.mainLayout.setAlignment(Qt.AlignTop)
-        self.setStyleSheet('border: none; background: {};'.format(AppSettings.BACKGROUND_COLOR))
+        self.setStyleSheet('QWidget {{ border: none; background: {}; }}'.format(AppSettings.BACKGROUND_COLOR))
 
         # Separator
         self.hline = QFrame()
@@ -111,7 +111,7 @@ class ResultsWidget(QWidget):
         self.hline.setFrameShadow(QFrame.Plain)
         self.hline.setMidLineWidth(0)
         self.hline.setLineWidth(0)
-        self.hline.setStyleSheet('border: none; background: {};'.format(AppSettings.SEPARATOR_COLOR))
+        self.hline.setStyleSheet('QFrame {{ border: none; background: {}; }}'.format(AppSettings.SEPARATOR_COLOR))
         self.mainLayout.addWidget(self.hline)
 
         # Bottom layout
@@ -140,7 +140,7 @@ class ResultsWidget(QWidget):
         self.vline.setFrameShadow(QFrame.Plain)
         self.vline.setMidLineWidth(0)
         self.vline.setLineWidth(0)
-        self.vline.setStyleSheet('border: none; background:{}'.format(AppSettings.SEPARATOR_COLOR))
+        self.vline.setStyleSheet('QFrame {{ border: none; background:{}; }}'.format(AppSettings.SEPARATOR_COLOR))
         self.bottomLayout.addWidget(self.vline, 0)
 
         # Details field
@@ -154,8 +154,12 @@ class ResultsWidget(QWidget):
     def search(self, field: str):
 
 
+
         # pass field to provider manager
         # manager does fuzz search for providers
+
+        # color recognized keywords
+        # https://stackoverflow.com/questions/14417333/how-can-i-change-color-of-part-of-the-text-in-qlineedit
 
         words = field.split()
         for i in range(len(words)):
@@ -284,20 +288,11 @@ class AppWidget(QWidget):
 
             # Stop executing further
             return
-
         # Ignore if last character is a blank space
         # TODO: good idea, but needs more thought
         # for example: ctrl+backspace remove the last word, but leaves the space
         # elif field.endswith(' '):
         #     return
-
-        # If results widget is not seen, open it
-        if not self.resultsOpen:
-            # Roll the window
-            self.roll_down()
-
-            # Set flag
-            self.resultsOpen = True
 
         # Add a delay on search
         self.searchTimer.start(AppSettings.SEARCH_DELAY)
@@ -371,11 +366,20 @@ class AppWidget(QWidget):
         self.resultsWidget.resultDetails.clear()
 
     # Assume user stopped typing, start searching
+    # If the widget is not open, roll down the window
     def do_query(self):
         # TODO more input validation
         query = self.searchField.text()
         if not query:
             return
+
+        # If results widget is not seen, open it
+        if not self.resultsOpen:
+            # Roll the window
+            self.roll_down()
+
+            # Set flag
+            self.resultsOpen = True
 
         # Clear previous results
         self.clear_results()
