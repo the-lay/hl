@@ -2,6 +2,8 @@ from pathlib import Path
 from PyQt5.QtCore import QSettings
 from PyQt5.QtGui import QIcon
 
+from ..providers.manager import *
+
 
 class AppSettings(QSettings):
     _singleton = None
@@ -12,6 +14,7 @@ class AppSettings(QSettings):
     RESULTS_HEIGHT = 300
     ANIMATION_DURATION = 250
     SEARCH_DELAY = 200
+    PLACEHOLDER_CHANGE_TIME = 2000
 
     BACKGROUND_COLOR = 'rgb(246,246,246)'
     SEPARATOR_COLOR = 'rgb(223,223,223)'
@@ -33,9 +36,17 @@ class AppSettings(QSettings):
         QSettings.__init__(self, str(self.settingsPath), QSettings.IniFormat)
         self.setFallbacksEnabled(False)
 
+        # Results provider manager
+        self.providerManager = ProviderManager()
+
     @staticmethod
     def get_resource(category: str, name: str) -> Path:
         return AppSettings.instance().resPath / category / name
+
+    @staticmethod
+    def get_provider_manager() -> ProviderManager:
+        return AppSettings.instance().providerManager
+
     #
     # @staticmethod
     # def get_icon(name: str) -> QIcon:

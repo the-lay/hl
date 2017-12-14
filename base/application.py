@@ -2,6 +2,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 import keyboard
+import signal
 
 from .helpers.settings import *
 from .gui.window import *
@@ -23,6 +24,10 @@ class Application(QMainWindow):
         self.appIcon.addFile(icon_path, QSize(256, 256))
         self.appIcon.addFile(icon_path, QSize(512, 512))
         self.setWindowIcon(QIcon(self.appIcon))
+
+        # Graceful exit
+        signal.signal(signal.SIGINT, self.close_app)
+        signal.signal(signal.SIGTERM, self.close_app)
 
         # Tray icon
         if QSystemTrayIcon.isSystemTrayAvailable():
