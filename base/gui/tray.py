@@ -2,7 +2,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-from ..helpers.settings import *
+from ..helpers import settings
 
 
 class AppTrayMenu(QMenu):
