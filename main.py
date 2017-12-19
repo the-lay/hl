@@ -15,14 +15,11 @@ from base.application import Application
 
 if __name__ == '__main__':
 
-    # Debugging
+    # PyQT debugging
     sys.excepthook = traceback.print_exception
 
     # Application tags
     app = QApplication(sys.argv)
-    app.setApplicationName('Hightlight')
-    app.setApplicationVersion('0.0.2')
-    app.setOrganizationName('the-lay')
 
     # The main app
     win = Application()

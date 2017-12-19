@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 import keyboard
 import signal
 
-from .helpers.settings import *
+from .helpers import settings
 from .gui.window import *
 from .gui.tray import *
 
@@ -15,15 +15,8 @@ class Application(QMainWindow):
         super().__init__(flags=Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint)
 
         # Application icon
-        self.appIcon = QIcon()
-        icon_path = str(AppSettings.get_resource('', 'logo.png'))
-        self.appIcon.addFile(icon_path, QSize(16, 16))
-        self.appIcon.addFile(icon_path, QSize(24, 24))
-        self.appIcon.addFile(icon_path, QSize(32, 32))
-        self.appIcon.addFile(icon_path, QSize(48, 48))
-        self.appIcon.addFile(icon_path, QSize(256, 256))
-        self.appIcon.addFile(icon_path, QSize(512, 512))
-        self.setWindowIcon(QIcon(self.appIcon))
+        self.appIcon = settings.icon('logo')
+        self.setWindowIcon(self.appIcon)
 
         # Graceful exit
         signal.signal(signal.SIGINT, self.close_app)
@@ -52,18 +45,18 @@ class Application(QMainWindow):
         self.setCentralWidget(self.appWidget)
 
         # Size
-        self.setFixedSize(AppSettings.WIDTH, AppSettings.S_FIELD_HEIGHT)
+        self.setFixedSize(settings.WIDTH, settings.S_FIELD_HEIGHT)
 
         # Center the window
         # Take the full (with results) window size
         self.setGeometry(QStyle.alignedRect(Qt.LeftToRight,
                                             Qt.AlignVCenter | Qt.AlignHCenter,
-                                            QSize(AppSettings.WIDTH,
-                                                  AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT),
+                                            QSize(settings.WIDTH,
+                                                  settings.S_FIELD_HEIGHT + settings.RESULTS_HEIGHT),
                                             qApp.desktop().availableGeometry()))
 
         # Background color
-        # self.setStyleSheet('background-color: {};'.format(AppSettings.BACKGROUND_COLOR))
+        # self.setStyleSheet('background-color: {};'.format(settings.BACKGROUND_COLOR))
 
         # Show app on launch
         # TODO settings: run minimized/open on first launch

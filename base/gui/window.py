@@ -4,7 +4,8 @@ from PyQt5.QtWidgets import *
 import random
 from typing import List
 
-from ..helpers.settings import *
+from ..helpers import settings
+from ..providers.manager import ProviderManager
 
 
 class SearchField(QLineEdit):
@@ -32,7 +33,7 @@ class SearchField(QLineEdit):
 
         # set the new placeholder and start timer for next change
         self.setPlaceholderText(new_greeting)
-        self.placeholderTimer.start(AppSettings.PLACEHOLDER_CHANGE_TIME)
+        self.placeholderTimer.start(settings.PLACEHOLDER_CHANGE_TIME)
 
     def __init__(self):
         super().__init__()
@@ -68,14 +69,14 @@ class SearchField(QLineEdit):
         # TODO when query is processed change icon to something informative? like a green tick
         # TODO and while searching an animated icon?
         self.iconSize = int(f_metric.ascent() * 1.3)
-        self.icon = QIcon(str(AppSettings.get_resource('icons', 'search.png')))
+        self.icon = settings.icon('search')
         self.setTextMargins(QMargins(self.iconSize + 13, 5, 0, 5))
 
         # Remove the context menu
         self.setContextMenuPolicy(Qt.NoContextMenu)
 
         # Border
-        self.setStyleSheet('QLineEdit {{ border: none; background-color: {0}; }}'.format(AppSettings.BACKGROUND_COLOR))
+        self.setStyleSheet('QLineEdit {{ border: none; background-color: {0}; }}'.format(settings.BACKGROUND_COLOR))
 
         # Intercept all keyboard events
         self.grabKeyboard()
@@ -111,7 +112,7 @@ class ResultsWidget(QWidget):
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.mainLayout.setSpacing(0)
         self.mainLayout.setAlignment(Qt.AlignTop)
-        self.setStyleSheet('QWidget {{ border: none; background: {}; }}'.format(AppSettings.BACKGROUND_COLOR))
+        self.setStyleSheet('QWidget {{ border: none; background: {}; }}'.format(settings.BACKGROUND_COLOR))
 
         # Separator
         self.hline = QFrame()
@@ -119,7 +120,7 @@ class ResultsWidget(QWidget):
         self.hline.setFrameShadow(QFrame.Plain)
         self.hline.setMidLineWidth(0)
         self.hline.setLineWidth(0)
-        self.hline.setStyleSheet('QFrame {{ border: none; background: {}; }}'.format(AppSettings.SEPARATOR_COLOR))
+        self.hline.setStyleSheet('QFrame {{ border: none; background: {}; }}'.format(settings.SEPARATOR_COLOR))
         self.mainLayout.addWidget(self.hline)
 
         # Bottom layout
@@ -133,7 +134,7 @@ class ResultsWidget(QWidget):
         self.resultsList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.resultsList.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.resultsList.setStyleSheet('QListWidget {{ border: none; background: {}; }}'
-                                       .format(AppSettings.BACKGROUND_COLOR))
+                                       .format(settings.BACKGROUND_COLOR))
         self.resultsList.setUniformItemSizes(True)
         # self.resultsList.setStyleSheet('QListWidget::item { border-bottom: 1px solid black; }')
         self.resultsList.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.MinimumExpanding)
@@ -149,7 +150,7 @@ class ResultsWidget(QWidget):
         self.vline.setFrameShadow(QFrame.Plain)
         self.vline.setMidLineWidth(0)
         self.vline.setLineWidth(0)
-        self.vline.setStyleSheet('QFrame {{ border: none; background:{}; }}'.format(AppSettings.SEPARATOR_COLOR))
+        self.vline.setStyleSheet('QFrame {{ border: none; background:{}; }}'.format(settings.SEPARATOR_COLOR))
         self.bottomLayout.addWidget(self.vline, 0)
 
         # Details field
@@ -161,9 +162,6 @@ class ResultsWidget(QWidget):
         self.setLayout(self.mainLayout)
 
         self.setFocusPolicy(Qt.NoFocus)
-
-        # Provider manager results connections
-        AppSettings.get_provider_manager().resultsFound.connect(self.receive_results)
 
     def receive_results(self, results: List) -> None:
 
@@ -194,7 +192,7 @@ class FoundItem(QWidget):
         self.mainLayout = QVBoxLayout()
         self.mainLayout.setContentsMargins(0, 0, 0, 0)  # same left-margin as search lens in the main bar
         self.mainLayout.setSpacing(0)
-        self.setStyleSheet('background: {};'.format(AppSettings.BACKGROUND_COLOR))
+        self.setStyleSheet('background: {};'.format(settings.BACKGROUND_COLOR))
 
         self.bottomLayout = QHBoxLayout()
         self.bottomLayout.setSpacing(7)
@@ -204,7 +202,7 @@ class FoundItem(QWidget):
 
         self.iconLabel = QLabel()
         self.iconLabel.setContentsMargins(8, 0, 0, 0)
-        self.iconLabel.setPixmap(QPixmap(str(AppSettings.get_resource('', icon + '.png'))).scaledToHeight(30))
+        self.iconLabel.setPixmap(QPixmap(settings.icon_path(icon)).scaledToHeight(30))
         # TODO expose height of result items to settings
 
         self.detailsLayout = QVBoxLayout()
@@ -226,7 +224,7 @@ class FoundItem(QWidget):
         self.hline.setFrameShadow(QFrame.Plain)
         self.hline.setMidLineWidth(0)
         self.hline.setLineWidth(0)
-        self.hline.setStyleSheet('border: none; background: {};'.format(AppSettings.SEPARATOR_COLOR))
+        self.hline.setStyleSheet('border: none; background: {};'.format(settings.SEPARATOR_COLOR))
         self.mainLayout.addWidget(self.hline)
 
         self.setLayout(self.mainLayout)
@@ -273,6 +271,10 @@ class AppWidget(QWidget):
         self.mainLayout.addWidget(self.resultsWidget)
         self.setLayout(self.mainLayout)
 
+        # Search provider manager
+        self.providerManager = ProviderManager()
+        self.providerManager.resultsFound.connect(self.resultsWidget.receive_results)
+
         # Connections
         self.searchField.textChanged.connect(self.text_input)
         self.searchField.selectUp.connect(lambda: self.select_up())
@@ -300,7 +302,7 @@ class AppWidget(QWidget):
         #     return
 
         # Add a delay on search
-        self.searchTimer.start(AppSettings.SEARCH_DELAY)
+        self.searchTimer.start(settings.SEARCH_DELAY)
 
     # TODO behavior of up/down/tab should be defined through settings
     def select_down(self) -> None:
@@ -336,13 +338,13 @@ class AppWidget(QWidget):
     # Roll window down
     def roll_down(self) -> None:
         # Set maximum height, animate minimum
-        self.parent().setMaximumHeight(AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT)
+        self.parent().setMaximumHeight(settings.S_FIELD_HEIGHT + settings.RESULTS_HEIGHT)
 
         # Defining roll down animation
         a = QPropertyAnimation(self.parent(), b'minimumHeight')
-        a.setDuration(AppSettings.ANIMATION_DURATION)
-        a.setStartValue(AppSettings.S_FIELD_HEIGHT)
-        a.setEndValue(AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT)
+        a.setDuration(settings.ANIMATION_DURATION)
+        a.setStartValue(settings.S_FIELD_HEIGHT)
+        a.setEndValue(settings.S_FIELD_HEIGHT + settings.RESULTS_HEIGHT)
         a.setEasingCurve(QEasingCurve.OutBack)
         a.start(QPropertyAnimation.DeleteWhenStopped)
 
@@ -359,12 +361,12 @@ class AppWidget(QWidget):
         self.resultsWidget.setVisible(False)
 
         # Set minimum height, animate maximum height
-        self.parent().setMinimumHeight(AppSettings.S_FIELD_HEIGHT)
+        self.parent().setMinimumHeight(settings.S_FIELD_HEIGHT)
 
         a = QPropertyAnimation(self.parent(), b'maximumHeight')
-        a.setDuration(AppSettings.ANIMATION_DURATION)
-        a.setStartValue(AppSettings.S_FIELD_HEIGHT + AppSettings.RESULTS_HEIGHT)
-        a.setEndValue(AppSettings.S_FIELD_HEIGHT)
+        a.setDuration(settings.ANIMATION_DURATION)
+        a.setStartValue(settings.S_FIELD_HEIGHT + settings.RESULTS_HEIGHT)
+        a.setEndValue(settings.S_FIELD_HEIGHT)
         a.setEasingCurve(QEasingCurve.OutBack)
         a.start(QPropertyAnimation.DeleteWhenStopped)
 
@@ -403,10 +405,9 @@ class AppWidget(QWidget):
 
         # Pass input field to provider manager
         # manager does fuzz search for providers
+        self.providerManager.search(query)
 
         # TODO color recognized keywords?
         # https://stackoverflow.com/questions/14417333/how-can-i-change-color-of-part-of-the-text-in-qlineedit
 
-        AppSettings.get_provider_manager().search(query)
         print('Searching for', query)
-
