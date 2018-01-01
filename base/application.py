@@ -108,10 +108,16 @@ class Application(QMainWindow):
         # keyboard.add_hotkey('shift+space', self.toggle_visibility)
 
     # -- Exit application
-    def close_app(self):
+    def closeEvent(self, event: QCloseEvent):
+        # Force sync settings
+        settings.qsettings.sync()
+
         # If there is a tray icon, remove it
         if self.trayIcon:
             self.trayIcon.hide()
 
+        event.accept()
+
+    def close_app(self):
         # Close the app
         qApp.quit()
