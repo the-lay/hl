@@ -1,17 +1,38 @@
+import random
+from typing import List, Callable
+
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
-import random
-from typing import List
 
 from ..helpers import settings
 from ..providers.manager import ProviderManager
+from ..providers.provider import Provider
+
+
+# TODO better completion http://doc.qt.io/qt-5/qtwidgets-tools-customcompleter-example.html
+class SearchFieldCompleter(QCompleter):
+
+    def __init__(self):
+        super().__init__()
+        # TODO set completer model to:
+        # 1. query history
+        # 2. plugin provided keywords
+        # 3. ???
+        model = QStringListModel()
+        model.setStringList(['autocomplete test'])
+
+        self.setModel(model)
+        self.setCaseSensitivity(Qt.CaseInsensitive)
+        self.setModelSorting(QCompleter.CaseInsensitivelySortedModel)
+        self.setCompletionMode(QCompleter.InlineCompletion)
 
 
 class SearchField(QLineEdit):
     selectUp = pyqtSignal()
     selectDown = pyqtSignal()
     selectTab = pyqtSignal()
+    selected = pyqtSignal()
 
     def placeholder_animation(self) -> None:
 
@@ -81,6 +102,10 @@ class SearchField(QLineEdit):
         # Intercept all keyboard events
         self.grabKeyboard()
 
+        # Completer
+        q_completer = SearchFieldCompleter()
+        self.setCompleter(q_completer)
+
     # Overloading to draw an icon
     def paintEvent(self, event: QPaintEvent) -> None:
         super().paintEvent(event)
@@ -99,6 +124,9 @@ class SearchField(QLineEdit):
             self.selectUp.emit()
         elif event.key() == Qt.Key_Tab:
             self.selectTab.emit()
+        elif event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+            if self.text():
+                self.selected.emit()
         else:
             super().keyPressEvent(event)
 
@@ -136,6 +164,7 @@ class ResultsWidget(QWidget):
         self.resultsList.setStyleSheet('QListWidget {{ border: none; background: {}; }}'
                                        .format(settings.BACKGROUND_COLOR))
         self.resultsList.setUniformItemSizes(True)
+        self.resultsList.setSortingEnabled(True)
         # self.resultsList.setStyleSheet('QListWidget::item { border-bottom: 1px solid black; }')
         self.resultsList.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.MinimumExpanding)
 
@@ -163,30 +192,37 @@ class ResultsWidget(QWidget):
 
         self.setFocusPolicy(Qt.NoFocus)
 
-    def receive_results(self, results: List) -> None:
+    def receive_results(self, results: List, provider: Provider, confidence: int) -> None:
 
-        for i in range(len(results)):
+        for result in results:
             item = QListWidgetItem(self.resultsList)
-            my_item = FoundItem('{}'.format(results[i]), confidence=(int(i) * 10))
-            item.setSizeHint(my_item.sizeHint())
+            item_widget = ResultItem(title=result, subtitle=result,
+                                     icon=provider.icon(), confidence=confidence,
+                                     action=lambda: print('action for', result))
+            item.setSizeHint(item_widget.sizeHint())
             self.resultsList.addItem(item)
-            self.resultsList.setItemWidget(item, my_item)
+            self.resultsList.setItemWidget(item, item_widget)
 
-        # TODO sort items by confidence
+        # ResultItem has sorting implemented
+        self.resultsList.sortItems()
 
         # Select the first row
         self.resultsList.setCurrentRow(0)
 
-        # placeholder, TODO remove when resultDetails widget implemented
-        self.resultDetails.setText(', '.join(results))
+    # Clears results model, list and details
+    def clear(self):
+        self.resultsList.clear()
+        self.resultDetails.clear()
 
 
-class FoundItem(QWidget):
-    # confidence allows sorting
-    # provider allows to traceback
+class ResultItem(QWidget):
 
-    def __init__(self, title: str, icon: str='logo', confidence: int=0, provider: int=0, parent=None):
-        super(FoundItem, self).__init__(parent)
+    def __init__(self, title: str='', subtitle: str='',
+                 icon: str='logo', confidence: int=0, provider: int=0, action: Callable=None):
+        super(ResultItem, self).__init__()
+
+        self.confidence = confidence
+        self.action = action
 
         # item layout
         self.mainLayout = QVBoxLayout()
@@ -211,7 +247,7 @@ class FoundItem(QWidget):
 
         self.titleLabel = QLabel(title)
         self.detailsLayout.addWidget(self.titleLabel)
-        self.confidenceLabel = QLabel(str(confidence))
+        self.confidenceLabel = QLabel(subtitle + ' - ' + str(confidence))
         self.detailsLayout.addWidget(self.confidenceLabel)
 
         self.bottomLayout.addWidget(self.iconLabel, 0)
@@ -228,6 +264,12 @@ class FoundItem(QWidget):
         self.mainLayout.addWidget(self.hline)
 
         self.setLayout(self.mainLayout)
+
+    def __lt__(self, other):
+        return self.confidence < other.confidence
+
+    def __rt__(self, other):
+        return self.confidence > other.confidence
 
 
 class AppWidget(QWidget):
@@ -257,6 +299,7 @@ class AppWidget(QWidget):
         self.resultsWidget = ResultsWidget()
         self.resultsWidget.setVisible(False)
         self.resultsOpen = False  # can't trust QWidget.isVisible with animations
+        self.resultsWidget.resultsList.currentRowChanged.connect(self.item_changed)
 
         # Visibility timer for results widget and roll-down/up animations
         # Option A: connect animation finish to visibility, but then there is a perceivable delay
@@ -280,6 +323,7 @@ class AppWidget(QWidget):
         self.searchField.selectUp.connect(lambda: self.select_up())
         self.searchField.selectDown.connect(lambda: self.select_down())
         self.searchField.selectTab.connect(lambda: self.select_tab())
+        self.searchField.selected.connect(lambda: self.selected())
 
     # Triggered upon change in search field
     # Handles results widget toggling and delaying search query
@@ -335,6 +379,18 @@ class AppWidget(QWidget):
 
         self.resultsWidget.resultsList.setCurrentRow(current_row)
 
+    def selected(self) -> None:
+        # TODO get the "open" action of the provider of selected result
+        print('Item selected event')
+        item = self.resultsWidget.resultsList.itemWidget(self.resultsWidget.resultsList.currentItem())
+        item.action()
+        print('Selected item\'s confidence:', item.confidence)
+
+    def item_changed(self, row: int):
+        print('Item changed event')
+        wd = self.resultsWidget.resultsList.itemWidget(self.resultsWidget.resultsList.currentItem())
+        # print('this')
+
     # Roll window down
     def roll_down(self) -> None:
         # Set maximum height, animate minimum
@@ -345,7 +401,7 @@ class AppWidget(QWidget):
         a.setDuration(settings.ANIMATION_DURATION)
         a.setStartValue(settings.S_FIELD_HEIGHT)
         a.setEndValue(settings.S_FIELD_HEIGHT + settings.RESULTS_HEIGHT)
-        a.setEasingCurve(QEasingCurve.OutBack)
+        a.setEasingCurve(QEasingCurve.OutCubic)
         a.start(QPropertyAnimation.DeleteWhenStopped)
 
         # Visibility timer
@@ -381,8 +437,7 @@ class AppWidget(QWidget):
 
     # Clear results list and result details
     def clear_results(self) -> None:
-        self.resultsWidget.resultsList.clear()
-        self.resultsWidget.resultDetails.clear()
+        self.resultsWidget.clear()
 
     # Assume user stopped typing, start searching
     # If the widget is not open, roll down the window
@@ -406,8 +461,5 @@ class AppWidget(QWidget):
         # Pass input field to provider manager
         # manager does fuzz search for providers
         self.providerManager.search(query)
-
-        # TODO color recognized keywords?
-        # https://stackoverflow.com/questions/14417333/how-can-i-change-color-of-part-of-the-text-in-qlineedit
 
         print('Searching for', query)

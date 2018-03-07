@@ -1,0 +1,9 @@
+[Core]
+Name = Wikipedia Search
+Module = wiki_search
+
+[Documentation]
+Author = the-lay
+Version = 0.1
+Website = https://gubins.lv
+Description = Wikipedia Search plugin for HL

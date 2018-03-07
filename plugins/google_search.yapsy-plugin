@@ -1,0 +1,9 @@
+[Core]
+Name = Google Search
+Module = google_search
+
+[Documentation]
+Author = the-lay
+Version = 0.1
+Website = https://gubins.lv
+Description = Google Search plugin for HL

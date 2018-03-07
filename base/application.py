@@ -19,15 +19,15 @@ class Application(QMainWindow):
         self.setWindowIcon(self.appIcon)
 
         # Graceful exit
-        signal.signal(signal.SIGINT, self.close_app)
-        signal.signal(signal.SIGTERM, self.close_app)
+        signal.signal(signal.SIGINT, lambda: self.close())
+        signal.signal(signal.SIGTERM, lambda: self.close())
 
         # Tray icon
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.trayIcon = AppTrayIcon(self.appIcon)
 
             # Menu connections
-            self.trayIcon.menu.exitRequested.connect(self.close_app)
+            self.trayIcon.menu.exitRequested.connect(lambda: self.close())
             self.trayIcon.menu.soundsRequested.connect(self.sounds_manager)
             self.trayIcon.menu.animationsRequested.connect(self.animation_manager)
             self.trayIcon.menu.hotkeyRequested.connect(self.hotkey_manager)
@@ -117,7 +117,3 @@ class Application(QMainWindow):
             self.trayIcon.hide()
 
         event.accept()
-
-    def close_app(self):
-        # Close the app
-        qApp.quit()
