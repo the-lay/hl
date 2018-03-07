@@ -43,6 +43,7 @@ basePath = Path(__file__).parent.parent.parent
 resPath = basePath / 'res'
 iconPath = resPath / 'icons'
 settingsPath = basePath / 'settings.ini'
+pluginsPath = basePath / 'plugins'
 
 # QSettings setup
 QCoreApplication.setOrganizationName('the-lay')

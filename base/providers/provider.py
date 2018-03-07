@@ -2,15 +2,33 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
+from yapsy.IPlugin import IPlugin
 
-class Provider(QObject):
-    resultReady = pyqtSignal(list)
+
+class Provider(QThread, IPlugin):
+    result = pyqtSignal(list, IPlugin)
 
     def __init__(self):
-        QObject.__init__(self)
+        QThread.__init__(self)
+        IPlugin.__init__(self)
+        self.query = ''
+        self.stop_requested = False
 
-    def search(self, query: str) -> None:
-        print(self, 'search for', query)
+    def run(self):
+        raise NotImplementedError
 
-        self.resultReady.emit(query.split())
+    def search(self, query: str):
+        self.query = query
+        self.start()
 
+    def stop_searching(self):
+        self.stop_requested = True
+
+    def icon(self):
+        raise NotImplementedError
+
+    def keywords(self):
+        raise NotImplementedError
+
+    def starts_with(self):
+        raise NotImplementedError
