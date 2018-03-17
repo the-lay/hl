@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import *
 
 from ..helpers import settings
 from ..providers.manager import ProviderManager
-from ..providers.provider import Provider
+from ..providers.provider import Provider, ProviderResult
 
 
 # TODO better completion http://doc.qt.io/qt-5/qtwidgets-tools-customcompleter-example.html
@@ -56,27 +56,20 @@ class SearchField(QLineEdit):
         self.setPlaceholderText(new_greeting)
         self.placeholderTimer.start(settings.PLACEHOLDER_CHANGE_TIME)
 
+    def update_greetings(self, greetings: [str]) -> None:
+        self.greetings = greetings
+
     def __init__(self):
         super().__init__()
 
         # Placeholder greetings
-        # TODO populate greetings from providers manager
-        self.greetings = [
-            "wiki 'query'",
-            "youtube 'query'",
-            "calendar 'query'",
-            "imdb 'query'",
-            "lyrics 'query'",
-            "any file on your PC",
-            "help"
-        ]
+        self.greetings = []
         self.currentGreeting = ''
 
         # Placeholder timer
         self.placeholderTimer = QTimer(self)
         self.placeholderTimer.timeout.connect(self.placeholder_callback)
         self.textChanged.connect(self.placeholder_animation)
-        self.placeholder_animation()
 
         # Font
         self.fontSize = 14
@@ -131,9 +124,72 @@ class SearchField(QLineEdit):
             super().keyPressEvent(event)
 
 
+class ResultItem(QWidget):
+
+    def __init__(self,
+                 title: str='', subtitle: str='',
+                 icon: str='logo', confidence: int=0,
+                 action: Callable=None):
+
+        QWidget.__init__(self)
+
+        self.confidence = confidence
+        self.action = action
+
+        # item layout
+        self.mainLayout = QVBoxLayout()
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)  # same left-margin as search lens in the main bar
+        self.mainLayout.setSpacing(0)
+        self.setStyleSheet('background: {};'.format(settings.BACKGROUND_COLOR))
+
+        self.bottomLayout = QHBoxLayout()
+        self.bottomLayout.setSpacing(7)
+
+        # TODO elided version of title
+        # https://stackoverflow.com/questions/7381100/text-overflow-for-a-qlabel-s-text-rendering-in-qt
+
+        self.iconLabel = QLabel()
+        self.iconLabel.setContentsMargins(8, 0, 0, 0)
+        self.iconLabel.setPixmap(QPixmap(settings.icon_path(icon)).scaledToHeight(30))
+        # TODO expose height of result items to settings
+
+        self.detailsLayout = QVBoxLayout()
+        self.detailsLayout.setContentsMargins(0, 0, 0, 0)
+        self.detailsLayout.setSpacing(0)
+
+        self.titleLabel = QLabel(title)
+        self.detailsLayout.addWidget(self.titleLabel)
+        self.confidenceLabel = QLabel(subtitle + ' - ' + str(confidence))
+        self.detailsLayout.addWidget(self.confidenceLabel)
+
+        self.bottomLayout.addWidget(self.iconLabel, 0)
+        self.bottomLayout.addLayout(self.detailsLayout, 1)
+        self.mainLayout.addLayout(self.bottomLayout)
+
+        # divider
+        self.hline = QFrame()
+        self.hline.setFrameShape(QFrame.HLine)
+        self.hline.setFrameShadow(QFrame.Plain)
+        self.hline.setMidLineWidth(0)
+        self.hline.setLineWidth(0)
+        self.hline.setStyleSheet('border: none; background: {};'.format(settings.SEPARATOR_COLOR))
+        self.mainLayout.addWidget(self.hline)
+
+        self.setLayout(self.mainLayout)
+
+    def __lt__(self, other):
+        return self.confidence < other.confidence
+
+    def __rt__(self, other):
+        return self.confidence > other.confidence
+
+
 class ResultsWidget(QWidget):
-    def __init__(self):
+    def __init__(self, search_field: SearchField):
         super().__init__()
+
+        # Reference to search field
+        self.search_field = search_field
 
         # Main layout
         self.mainLayout = QVBoxLayout()
@@ -192,13 +248,15 @@ class ResultsWidget(QWidget):
 
         self.setFocusPolicy(Qt.NoFocus)
 
-    def receive_results(self, results: List, provider: Provider, confidence: int) -> None:
+    def receive_results(self, results: [ProviderResult]) -> None:
+
+        # TODO results will return their
 
         for result in results:
             item = QListWidgetItem(self.resultsList)
-            item_widget = ResultItem(title=result, subtitle=result,
-                                     icon=provider.icon(), confidence=confidence,
-                                     action=lambda: print('action for', result))
+            item_widget = ResultItem(title=result.title, subtitle=result.subtitle,
+                                     icon=result.icon, confidence=result.confidence,
+                                     action=result.action)
             item.setSizeHint(item_widget.sizeHint())
             self.resultsList.addItem(item)
             self.resultsList.setItemWidget(item, item_widget)
@@ -213,63 +271,6 @@ class ResultsWidget(QWidget):
     def clear(self):
         self.resultsList.clear()
         self.resultDetails.clear()
-
-
-class ResultItem(QWidget):
-
-    def __init__(self, title: str='', subtitle: str='',
-                 icon: str='logo', confidence: int=0, provider: int=0, action: Callable=None):
-        super(ResultItem, self).__init__()
-
-        self.confidence = confidence
-        self.action = action
-
-        # item layout
-        self.mainLayout = QVBoxLayout()
-        self.mainLayout.setContentsMargins(0, 0, 0, 0)  # same left-margin as search lens in the main bar
-        self.mainLayout.setSpacing(0)
-        self.setStyleSheet('background: {};'.format(settings.BACKGROUND_COLOR))
-
-        self.bottomLayout = QHBoxLayout()
-        self.bottomLayout.setSpacing(7)
-
-        # TODO elided version of title
-        # https://stackoverflow.com/questions/7381100/text-overflow-for-a-qlabel-s-text-rendering-in-qt
-
-        self.iconLabel = QLabel()
-        self.iconLabel.setContentsMargins(8, 0, 0, 0)
-        self.iconLabel.setPixmap(QPixmap(settings.icon_path(icon)).scaledToHeight(30))
-        # TODO expose height of result items to settings
-
-        self.detailsLayout = QVBoxLayout()
-        self.detailsLayout.setContentsMargins(0, 0, 0, 0)
-        self.detailsLayout.setSpacing(0)
-
-        self.titleLabel = QLabel(title)
-        self.detailsLayout.addWidget(self.titleLabel)
-        self.confidenceLabel = QLabel(subtitle + ' - ' + str(confidence))
-        self.detailsLayout.addWidget(self.confidenceLabel)
-
-        self.bottomLayout.addWidget(self.iconLabel, 0)
-        self.bottomLayout.addLayout(self.detailsLayout, 1)
-        self.mainLayout.addLayout(self.bottomLayout)
-
-        # divider
-        self.hline = QFrame()
-        self.hline.setFrameShape(QFrame.HLine)
-        self.hline.setFrameShadow(QFrame.Plain)
-        self.hline.setMidLineWidth(0)
-        self.hline.setLineWidth(0)
-        self.hline.setStyleSheet('border: none; background: {};'.format(settings.SEPARATOR_COLOR))
-        self.mainLayout.addWidget(self.hline)
-
-        self.setLayout(self.mainLayout)
-
-    def __lt__(self, other):
-        return self.confidence < other.confidence
-
-    def __rt__(self, other):
-        return self.confidence > other.confidence
 
 
 class AppWidget(QWidget):
@@ -296,7 +297,7 @@ class AppWidget(QWidget):
 
         # Results widget
         # Results widget is being added/hidden depending on text input, hide it initially
-        self.resultsWidget = ResultsWidget()
+        self.resultsWidget = ResultsWidget(self.searchField)
         self.resultsWidget.setVisible(False)
         self.resultsOpen = False  # can't trust QWidget.isVisible with animations
         self.resultsWidget.resultsList.currentRowChanged.connect(self.item_changed)
@@ -304,7 +305,7 @@ class AppWidget(QWidget):
         # Visibility timer for results widget and roll-down/up animations
         # Option A: connect animation finish to visibility, but then there is a perceivable delay
         # Option B: set visibility from the beginning, but then there are weird sizing issues
-        # Option C : make a tiny timer that will set visibility on after animation started, but before it's finished
+        # Option C: make a tiny timer that will set visibility on after animation started, but before it's finished
         self.visTimer = QTimer(self)
         self.visTimer.setSingleShot(True)
         self.visTimer.timeout.connect(lambda: self.resultsWidget.setVisible(True))
@@ -318,12 +319,16 @@ class AppWidget(QWidget):
         self.providerManager = ProviderManager()
         self.providerManager.resultsFound.connect(self.resultsWidget.receive_results)
 
+        # Provide greetings to the search field and start the animation
+        self.searchField.update_greetings(self.providerManager.generate_greetings())
+        self.searchField.placeholder_animation()
+
         # Connections
         self.searchField.textChanged.connect(self.text_input)
-        self.searchField.selectUp.connect(lambda: self.select_up())
-        self.searchField.selectDown.connect(lambda: self.select_down())
-        self.searchField.selectTab.connect(lambda: self.select_tab())
-        self.searchField.selected.connect(lambda: self.selected())
+        self.searchField.selectUp.connect(self.select_up)
+        self.searchField.selectDown.connect(self.select_down)
+        self.searchField.selectTab.connect(self.select_tab)
+        self.searchField.selected.connect(self.selected)
 
     # Triggered upon change in search field
     # Handles results widget toggling and delaying search query
@@ -387,7 +392,7 @@ class AppWidget(QWidget):
         print('Selected item\'s confidence:', item.confidence)
 
     def item_changed(self, row: int):
-        print('Item changed event')
+        # print('Item changed event')
         wd = self.resultsWidget.resultsList.itemWidget(self.resultsWidget.resultsList.currentItem())
         # print('this')
 
