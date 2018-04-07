@@ -1,168 +1,111 @@
 import sys
+import types
 from pathlib import Path
 from PyQt5.QtCore import QSettings, QCoreApplication
 from PyQt5.QtGui import QIcon
 
 
-# Resources
-def icon_path(name) -> str:
-    return str(iconPath / (name + '.png'))
+class SettingsWrapper(types.ModuleType):
+
+    # For easier auto-complete in IDE, add each new setting to settings.pyi stub
+    # TODO: automatic stub file generator
+
+    # List of possible settings. key[0] is the type, key[1] is the default value
+    _possible_settings = {
+        'WIDTH': (int, 640),
+        'S_FIELD_HEIGHT': (int, 40),
+        'RESULTS_HEIGHT': (int, 300),
+        'ANIMATION_DURATION': (int, 250),
+        'SEARCH_DELAY': (int, 150),
+        'PLACEHOLDER_CHANGE_TIME': (int, 2000),
+        'BACKGROUND_COLOR': (str, 'F6F6F6'),
+        'SEPARATOR_COLOR': (str, '#DFDFDF')
+    }
+
+    # Generate runtime settings
+    # For example paths, which should not be stored in settings ini
+    _base_path = Path(__file__).parent.parent.parent
+    _res_path = _base_path / 'res'
+    _icon_path = _res_path / 'icons'
+    _settings_path = _base_path / 'settings.ini'
+    _plugins_path = _base_path / 'plugins'
+    _runtime_settings = {
+        'BASE_PATH': _base_path,
+        'RES_PATH': _res_path,
+        'ICON_PATH': _icon_path,
+        'SETTINGS_PATH': _settings_path,
+        'PLUGINS_PATH': _plugins_path
+    }
+
+    # TODO: Logging
+    @staticmethod
+    def log(*whatever):
+        print(whatever)
+
+    # Resources
+    def icon_path(self, name) -> str:
+        return str(self.ICON_PATH / (name + '.png'))
+
+    def icon(self, name) -> QIcon:
+        return QIcon(self.icon_path(name))
+
+    # Reset settings to default
+    def reset_settings(self):
+        for k, v in self._possible_settings.items():
+            self.qsettings.setValue(k, v[1])
+
+        self.qsettings.sync()
+
+    def __init__(self, wrapped):
+        self._wrapped = wrapped
+        # get
+        self._runtime = [x for x in dir(self._runtime_settings) if not x.startswith('_')]
+
+        # QSettings setup
+        QCoreApplication.setOrganizationName('the-lay')
+        QCoreApplication.setOrganizationDomain('gubins.lv')
+        QCoreApplication.setApplicationName('Highlight')
+        QCoreApplication.setApplicationVersion('0.0.5')
+
+        self.qsettings = QSettings(str(self.SETTINGS_PATH), QSettings.IniFormat)
+        self.qsettings.setFallbacksEnabled(False)
+
+        # # If setup has not been done
+        # if not self.qsettings.value('SETUP_FINISHED', type=bool):
+        #     self.reset_settings()
+
+    # Get/set settings
+    def __setitem__(self, key, value):
+
+        if key in self._runtime:
+            raise AttributeError('Key ' + key + ' is generated at runtime and is read-only.')
+
+        if key in self._possible_settings:
+            return self.qsettings.setValue(key, value)
+        else:
+            raise AttributeError('Key ' + key + ' is not one of the possible settings.')
+
+    def __getitem__(self, key):
+        # if asked for one of the runtime generated settings
+        if key in self._runtime_settings:
+            return self._runtime_settings[key]
+
+        try:
+            return self.qsettings.value(key, type=self._possible_settings[key][0])
+        except AttributeError:
+            self.log('Can\'t find setting', key)
+
+    def __getattribute__(self, item: str):
 
 
-def icon(name) -> QIcon:
-    return QIcon(icon_path(name))
+        # getter = super().__getattr__
+        # if requested attr starts with uppercase, then it is one of the settings
+        if item[0].isupper():
+            return self[item]
 
+        return super().__getattribute__(item)
 
-# Available settings with type and default value
-default_values = {
-    'WIDTH': (int, 640),
-    'S_FIELD_HEIGHT': (int, 40),
-    'RESULTS_HEIGHT': (int, 300),
-    'ANIMATION_DURATION': (int, 250),
-    'SEARCH_DELAY': (int, 150),
-    'PLACEHOLDER_CHANGE_TIME': (int, 2000),
-    'BACKGROUND_COLOR': (str, 'rgb(246,246,246)'),
-    'SEPARATOR_COLOR': (str, 'rgb(223,223,223)')
-}
+        # return getter(item)
 
-# This block is here only for IDE, the values are overwritten later anyway (setattr(...))
-# TODO maybe remove this later on?
-# TODO is there a better way to do all this?
-WIDTH = 640
-S_FIELD_HEIGHT = 40
-RESULTS_HEIGHT = 300
-ANIMATION_DURATION = 250
-SEARCH_DELAY = 150
-PLACEHOLDER_CHANGE_TIME = 500
-BACKGROUND_COLOR = 'rgb(246,246,246)'
-SEPARATOR_COLOR = 'rgb(223,223,223)'
-
-# Paths
-# TODO is there a better way to specify base path?
-basePath = Path(__file__).parent.parent.parent
-resPath = basePath / 'res'
-iconPath = resPath / 'icons'
-settingsPath = basePath / 'settings.ini'
-pluginsPath = basePath / 'plugins'
-
-# QSettings setup
-QCoreApplication.setOrganizationName('the-lay')
-QCoreApplication.setOrganizationDomain('gubins.lv')
-QCoreApplication.setApplicationName('Highlight')
-QCoreApplication.setApplicationVersion('0.0.3')
-
-qsettings = QSettings(str(settingsPath), QSettings.IniFormat)
-qsettings.setFallbacksEnabled(False)
-
-# Set default values if settings.ini does not exist or only partial values
-for setting, value in default_values.items():
-    if not qsettings.value(setting):
-        qsettings.setValue(setting, value[1])
-        print('setting qsettings value for ', setting)
-
-# Populate module attributes - syntactic sugar pretty much
-for key in qsettings.allKeys():
-    setattr(sys.modules[__name__], key, qsettings.value(key, type=default_values[key][0]))
-
-# TODO Leaving previous approaches for later, might revert back / try them again later
-
-
-# class Settings(ModuleType):
-#
-#     def __getattr__(self, item):
-#         print('getting', item)
-#         return getattr(self, item)
-#
-#     # def __setattr__(self, k, v):
-#     #     print('setting', k, v)
-#     #     setattr(sys.modules[__name__], k, qsettings.value(v, type=default_values[k][0]))
-#
-#
-# sys.modules[__name__] = Settings(__name__)
-
-#
-#
-# class AppSettings(dict):
-#
-#     # Singleton
-#     __instance = None
-#
-#     def __new__(cls):
-#         if not AppSettings.__instance:
-#             AppSettings.__instance = AppSettings.__Impl()
-#
-#         return AppSettings.__instance
-#
-#     def __getattr__(self, item):
-#         return getattr(self.__instance, item)
-#
-#     def __setattr__(self, key, value):
-#         return setattr(self.__instance, key, value)
-#
-#     # Actual settings implementation
-#     class __Impl:
-#
-#         def __init__(self):
-#             # Paths
-#             self.basePath = Path(__file__).parent.parent.parent
-#             self.resPath = self.basePath / 'res'
-#             self.iconPath = self.resPath / 'icons'
-#             self.settingsPath = self.basePath / 'settings.ini'
-#
-#             # QSettings setup
-#             QCoreApplication.setOrganizationName('the-lay')
-#             QCoreApplication.setOrganizationDomain('gubins.lv')
-#             QCoreApplication.setApplicationName('Highlight')
-#             QCoreApplication.setApplicationVersion('0.0.2')
-#
-#             self.qsettings = QSettings(str(self.settingsPath), QSettings.IniFormat)
-#             self.qsettings.setFallbacksEnabled(False)
-#
-#             # Set default values
-#             self.reset_settings()
-#
-#         # Reset settings - default values
-#         def reset_settings(self):
-#             # TODO expose all these values in a settings window
-#             default_settings = {
-#                 'WIDTH': 640,
-#                 'S_FIELD_HEIGHT': 40,
-#                 'RESULTS_HEIGHT': 300,
-#                 'ANIMATION_DURATION': 250,
-#                 'SEARCH_DELAY': 150,
-#                 'PLACEHOLDER_CHANGE_TIME': 2000,
-#                 'BACKGROUND_COLOR': 'rgb(246,246,246)',
-#                 'SEPARATOR_COLOR': 'rgb(223,223,223)'
-#             }
-#
-#             for setting, value in default_settings.items():
-#                 if not self.qsettings.value(setting):
-#                     self.qsettings.setValue(setting, value)
-#
-#         # Resources
-#         def icon(self, name):
-#             return self.iconPath / (name + '.png')
-#
-#         # Returns all set settings, mostly for debugging
-#         @property
-#         def set_settings(self):
-#             return self.keys()
-#
-#         # Allow access to settings in a cool dict-like fashion
-#         def __iter__(self):
-#             return (key for key in self.qsettings.allKeys())
-#
-#         def __setitem__(self, key, value):
-#             self.qsettings.setValue(key, value)
-#
-#         def __getitem__(self, key):
-#             return self.qsettings.value(key)
-#
-#         def keys(self):
-#             return [key for key in self.qsettings.allKeys()]
-#
-#         def values(self):
-#             return [self.qsettings.value(key) for key in self.qsettings.allKeys()]
-#
-#         def itervalues(self):
-#             return (self.qsettings.value(key) for key in self.qsettings.allKeys())
+sys.modules[__name__] = SettingsWrapper(sys.modules[__name__])
+print('woah')
