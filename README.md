@@ -1,6 +1,8 @@
 Highlight: Spotlight for Windows
 --------------------------------
 
+In development: working on the project on quiet weekend.
+
 ![](https://github.com/the-lay/hl/blob/master/demo.gif)
 
 ### Goals
