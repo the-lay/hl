@@ -40,7 +40,7 @@ class ProviderManager(QObject):
         if clean_start:
             self.providers = []
 
-        for file in os.listdir(str(settings.pluginsPath)):
+        for file in os.listdir(str(settings.PLUGINS_PATH)):
             if file.endswith('.py') and not file.startswith('__'):
                 file = file.replace('.py', '')
                 plugin = importlib.import_module('.' + file, 'plugins')
@@ -85,7 +85,6 @@ class ProviderManager(QObject):
 
         # TODO color recognized keywords?
         # https://stackoverflow.com/questions/14417333/how-can-i-change-color-of-part-of-the-text-in-qlineedit
-
 
     def stop_searching(self):
         print('stop_searching')

@@ -14,7 +14,7 @@ class Plugin(provider.Provider):
     icon = 'wiki'
     starts_with = ['wiki', 'wikipedia']
     keywords = ['wiki', 'wikipedia']
-    greetings = ['wiki "query"', 'wikipedia']
+    greetings = ['wiki \'query\'', 'wikipedia']
 
     def run(self):
         self.calculate_confidence()
