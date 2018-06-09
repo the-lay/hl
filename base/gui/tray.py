@@ -7,9 +7,10 @@ from ..helpers import settings
 
 class AppTrayMenu(QMenu):
     exitRequested = pyqtSignal()
-    soundsRequested = pyqtSignal(bool)
-    animationsRequested = pyqtSignal(bool)
-    hotkeyRequested = pyqtSignal(bool)
+    soundsToggled = pyqtSignal(bool)
+    animationsToggled = pyqtSignal(bool)
+    hotkeyToggled = pyqtSignal(bool)
+    preferencesRequested = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -17,28 +18,27 @@ class AppTrayMenu(QMenu):
         # Mute sounds
         sound_effects = QAction('Enable sounds', self)
         sound_effects.setCheckable(True)
-        sound_effects.setChecked(True)
-        sound_effects.triggered.connect(self.soundsRequested.emit)
+        sound_effects.setChecked(settings.SOUNDS_ENABLED)
+        sound_effects.triggered.connect(self.soundsToggled.emit)
         self.addAction(sound_effects)
 
         # Animations
         animations = QAction('Animations', self)
         animations.setCheckable(True)
-        animations.setChecked(True)
-        animations.triggered.connect(self.animationsRequested.emit)
+        animations.setChecked(settings.ANIMATIONS_ENABLED)
+        animations.triggered.connect(self.animationsToggled.emit)
         self.addAction(animations)
 
         # Global hotkey
         hotkey = QAction('Global hotkey', self)
         hotkey.setCheckable(True)
-        hotkey.setChecked(True)
-        hotkey.triggered.connect(self.hotkeyRequested.emit)
+        hotkey.setChecked(settings.GLOBAL_HOTKEY_ENABLED)
+        hotkey.triggered.connect(self.hotkeyToggled.emit)
         self.addAction(hotkey)
 
         # Preferences
-        # TODO
         preferences = QAction('Preferences', self)
-        preferences.triggered.connect(lambda: print('heyho'))
+        preferences.triggered.connect(self.preferencesRequested.emit)
         self.addAction(preferences)
 
         # Separator

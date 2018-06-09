@@ -449,7 +449,7 @@ class AppWidget(QWidget):
     def do_query(self) -> None:
         # TODO more input validation
         query = self.searchField.text()
-        if not query:
+        if not query or query.isspace():
             return
 
         # If results widget is not seen, open it
