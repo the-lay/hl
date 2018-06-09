@@ -1,7 +1,7 @@
 Highlight: Spotlight for Windows
 --------------------------------
 
-In development: working on the project on quiet weekend.
+In development: working on the project on quiet weekends.
 
 ![](https://github.com/the-lay/hl/blob/master/demo.gif)
 

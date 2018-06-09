@@ -18,8 +18,12 @@ class SettingsWrapper(types.ModuleType):
         'ANIMATION_DURATION': (int, 250),
         'SEARCH_DELAY': (int, 150),
         'PLACEHOLDER_CHANGE_TIME': (int, 2000),
-        'BACKGROUND_COLOR': (str, 'F6F6F6'),
-        'SEPARATOR_COLOR': (str, '#DFDFDF')
+        'BACKGROUND_COLOR': (str, '#F6F6F6'),
+        'SEPARATOR_COLOR': (str, '#DFDFDF'),
+        'SCREEN_NUM': (int, -1),  # -1 means show app on screen where the mouse cursor currently is
+        'SOUNDS_ENABLED': (bool, True),
+        'ANIMATIONS_ENABLED': (bool, True),
+        'GLOBAL_HOTKEY_ENABLED': (bool, True)
     }
 
     # Generate runtime settings
@@ -52,13 +56,16 @@ class SettingsWrapper(types.ModuleType):
     # Reset settings to default
     def reset_settings(self):
         for k, v in self._possible_settings.items():
-            self.qsettings.setValue(k, v[1])
+            self._qsettings.setValue(k, v[1])
 
-        self.qsettings.sync()
+        self._qsettings.sync()
+
+    # Sync settings
+    def sync(self):
+        self._qsettings.sync()
 
     def __init__(self, wrapped):
         self._wrapped = wrapped
-        # get
         self._runtime = [x for x in dir(self._runtime_settings) if not x.startswith('_')]
 
         # QSettings setup
@@ -67,12 +74,15 @@ class SettingsWrapper(types.ModuleType):
         QCoreApplication.setApplicationName('Highlight')
         QCoreApplication.setApplicationVersion('0.0.5')
 
-        self.qsettings = QSettings(str(self.SETTINGS_PATH), QSettings.IniFormat)
-        self.qsettings.setFallbacksEnabled(False)
+        self._qsettings = QSettings(str(self.SETTINGS_PATH), QSettings.IniFormat)
+        self._qsettings.setFallbacksEnabled(False)
 
-        # # If setup has not been done
-        # if not self.qsettings.value('SETUP_FINISHED', type=bool):
-        #     self.reset_settings()
+        # Check if all possible settings are in ini
+        # If not, write new ones
+        for key, def_val in self._possible_settings.items():
+            if key not in self._qsettings.allKeys():
+                print(key, 'is not in qsettings, adding it now')
+                self._qsettings.setValue(key, def_val[1])
 
     # Get/set settings
     def __setitem__(self, key, value):
@@ -81,7 +91,7 @@ class SettingsWrapper(types.ModuleType):
             raise AttributeError('Key ' + key + ' is generated at runtime and is read-only.')
 
         if key in self._possible_settings:
-            return self.qsettings.setValue(key, value)
+            return self._qsettings.setValue(key, value)
         else:
             raise AttributeError('Key ' + key + ' is not one of the possible settings.')
 
@@ -91,21 +101,21 @@ class SettingsWrapper(types.ModuleType):
             return self._runtime_settings[key]
 
         try:
-            return self.qsettings.value(key, type=self._possible_settings[key][0])
+            return self._qsettings.value(key, type=self._possible_settings[key][0])
         except AttributeError:
             self.log('Can\'t find setting', key)
 
+    # Make it iterable
+    def keys(self):
+        return list(self._runtime_settings.keys()) + self._qsettings.allKeys()
+
+    # Delegate uppercase attribute requests to getter
     def __getattribute__(self, item: str):
 
-
-        # getter = super().__getattr__
         # if requested attr starts with uppercase, then it is one of the settings
         if item[0].isupper():
             return self[item]
 
         return super().__getattribute__(item)
 
-        # return getter(item)
-
 sys.modules[__name__] = SettingsWrapper(sys.modules[__name__])
-print('woah')

@@ -9,7 +9,9 @@ Main entrance point for Highlight.
 
 import sys
 import traceback
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
 from base.application import Application
 
 
@@ -17,6 +19,9 @@ if __name__ == '__main__':
 
     # PyQT debugging
     sys.excepthook = traceback.print_exception
+
+    #
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
     # Application tags
     app = QApplication(sys.argv)
